@@ -29,6 +29,47 @@ jobs:
         run: |
           python -m unittest discover -s tests -v
           python -m unittest discover -s scripts -p 'deploy_test.py' -v
+      - name: Audit pinned Python dependencies in isolated tooling environment
+        id: dependency_audit
+        run: |
+          python -m venv "$RUNNER_TEMP/pip-audit"
+          "$RUNNER_TEMP/pip-audit/bin/python" -m pip --isolated install --index-url https://pypi.org/simple pip-audit==2.10.1
+          "$RUNNER_TEMP/pip-audit/bin/python" - <<'PY'
+          import hashlib, importlib.metadata, json, os, platform, subprocess, sys
+          from datetime import datetime, timezone
+          from pathlib import Path
+          report_dir = Path("artifacts/security")
+          report_dir.mkdir(parents=True, exist_ok=True)
+          metadata = {
+              "scanner": "pip-audit",
+              "scanner_version": importlib.metadata.version("pip-audit"),
+              "started_at_utc": datetime.now(timezone.utc).isoformat(),
+              "python_version": platform.python_version(),
+              "platform": sys.platform,
+              "source_commit": os.environ["GITHUB_SHA"],
+              "requirements_sha256": hashlib.sha256(Path("requirements.txt").read_bytes()).hexdigest(),
+              "scope": "Pinned Python dependencies only; no OS/image or source-code scan."
+          }
+          command = [sys.executable, "-m", "pip_audit", "--requirement", "requirements.txt",
+                     "--no-deps", "--disable-pip", "--strict", "--vulnerability-service", "pypi",
+                     "--progress-spinner", "off", "--format", "json",
+                     "--output", str(report_dir / "pip-audit.json")]
+          result = subprocess.run(command, check=False)
+          metadata.update(finished_at_utc=datetime.now(timezone.utc).isoformat(), return_code=result.returncode,
+                          arguments=command[1:])
+          (report_dir / "metadata.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+          versions = {item.metadata["Name"]: item.version for item in importlib.metadata.distributions()}
+          (report_dir / "scanner-dependencies.json").write_text(json.dumps(versions, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          raise SystemExit(result.returncode)
+          PY
+      - name: Retain Python dependency audit evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always() && steps.dependency_audit.outcome != 'skipped'
+        with:
+          name: python-dependency-audit-${{ github.run_id }}
+          path: artifacts/security/*.json
+          if-no-files-found: error
+          retention-days: 7
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: "1.12.2"

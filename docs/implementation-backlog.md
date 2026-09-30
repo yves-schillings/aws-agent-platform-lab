@@ -9,10 +9,10 @@ These are issue specifications maintained in the repository. They are not publis
 | LAB-03 | JWT verification, group policy, two simulated tenants, denial tests | Two real Cognito users, login and deployed denial tests |
 | LAB-04 | Mandatory-filter Retrieve adapter, provenance checks, ingestion-file generator | Real embeddings/index ingestion and retrieval evaluation |
 | LAB-05 | Real MCP stdio round trip, scope and argument denial tests; tool exercised in the offline container CI workflow | Same tool in the AWS-deployed container |
-| LAB-06 | Successful Linux Docker build and offline run to the approval gate in the linked CI run; dependency lock and packaged UI assets | Recorded vulnerability/dependency findings, restart/storage behavior and AWS container evidence |
+| LAB-06 | Successful Linux Docker build and offline run; 42 Python dependencies audited with no known findings; completed decisions survive an actual local HTTP process restart | AWS container replacement/S3 persistence and ECR image-scan findings |
 | LAB-07 | Terraform schema/static validation and scoped roles | Reviewed plan, deployment, monitoring and teardown |
 | LAB-08 | Pinned workflow actions, deployment/rollback scripts and contract tests; hosted offline tests, Terraform validation and Docker smoke passed in the linked CI run | Actual OIDC trust and AWS deployment/rollback runs |
-| LAB-09 | Safe structured events, OpenTelemetry instrumentation, persisted decisions | CloudWatch evidence and operational fault rehearsal |
+| LAB-09 | Safe structured events, OpenTelemetry instrumentation, persisted decisions and post-restart replay/ownership checks | CloudWatch evidence, S3 persistence and operational fault rehearsal |
 | LAB-10 | English/Dutch explanation guide and synthetic scenarios | Cloud evaluation and presenter rehearsal |
 | LAB-11 | Explicit production follow-up boundary | Enterprise decisions and operating evidence |
 
