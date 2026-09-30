@@ -1,0 +1,46 @@
+name: Offline checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      AWS_EC2_METADATA_DISABLED: "true"
+      LOCAL_DEMO_MODE: "true"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install locked dependencies and local package
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install --no-deps -e .
+      - name: Test application and deployment boundaries without cloud access
+        run: |
+          python -m unittest discover -s tests -v
+          python -m unittest discover -s scripts -p 'deploy_test.py' -v
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: "1.12.2"
+      - name: Validate Terraform without a backend or AWS credentials
+        working-directory: infra
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false -input=false -lockfile=readonly
+          terraform validate -no-color
+      - name: Build and smoke-test container in local mode
+        run: |
+          docker build --tag lab-ci .
+          docker run --detach --name lab-ci --env LOCAL_DEMO_MODE=true lab-ci
+          trap 'docker logs lab-ci; docker rm --force lab-ci' EXIT
+          docker exec lab-ci python /app/container_smoke.py

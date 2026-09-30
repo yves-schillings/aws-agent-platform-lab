@@ -1,0 +1,16 @@
+*
+!Dockerfile
+!requirements.txt
+!pyproject.toml
+!README.md
+!src/
+!src/**
+!corpus/
+!corpus/**
+!scenarios/
+!scenarios/**
+!scripts/
+!scripts/container_smoke.py
+**/__pycache__/
+**/*.pyc
+**/*.egg-info/

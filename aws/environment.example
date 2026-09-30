@@ -1,0 +1,8 @@
+# Copy these settings into your current shell; this file is not auto-loaded.
+# Keep credentials outside the project. Prefer an AWS SSO profile.
+AWS_REGION=eu-west-1
+AWS_PROFILE=aws-agent-platform-lab
+BEDROCK_MODEL_ID=<model-or-inference-profile-enabled-for-your-account>
+POC_TIMEOUT_SECONDS=45
+POC_MAX_ATTEMPTS=2
+POC_MAX_OUTPUT_TOKENS=2048

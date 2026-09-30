@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AWS Agent Platform Lab</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="AWS Agent Platform Lab home"><span class="brand-mark">A</span><span>Agent Platform <strong>Lab</strong></span></a>
+    <span id="mode" class="badge">Checking configuration</span>
+  </header>
+  <main>
+    <section class="intro">
+      <p class="eyebrow">BUILD IT. TRACE IT. EXPLAIN IT.</p>
+      <h1>From a question to<br><span>a controlled result.</span></h1>
+      <p class="lede">Follow three agents through a synthetic document workflow. Inspect the sources, review the proposal, then decide what happens next.</p>
+    </section>
+    <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+    <section class="session card" aria-labelledby="session-title">
+      <div><h2 id="session-title">Your workspace</h2><p id="identity">Sign in to start a demonstration.</p></div>
+      <div class="session-actions">
+        <label id="demo-choice" hidden>Simulated identity<select id="demo-user"><option value="localalpha">Alpha workspace</option><option value="localbeta">Beta workspace</option></select></label>
+        <button id="sign-in" type="button" hidden>Sign in with Cognito</button>
+        <button id="sign-out" class="secondary" type="button" hidden>Sign out</button>
+      </div>
+    </section>
+    <div class="workspace">
+      <section class="card composer" aria-labelledby="request-title">
+        <div class="section-label">01 / REQUEST</div>
+        <h2 id="request-title">Give the agents a task</h2>
+        <form id="run-form">
+          <label for="request-text">Synthetic request</label>
+          <textarea id="request-text" rows="7" maxlength="4000" required>Prepare a fictional document checklist. Identify missing information, cite the permitted source documents, and propose a workflow with independent review and an explicit human decision. Do not make a real operational decision.</textarea>
+          <div class="form-row"><label for="language">Demonstration language</label><select id="language"><option value="en">English</option><option value="nl">Nederlands</option></select></div>
+          <label class="check"><input id="synthetic" type="checkbox" required><span>This request contains synthetic information only. No personal or confidential data.</span></label>
+          <button id="start-run" type="submit" disabled>Run the workflow <span aria-hidden="true">→</span></button>
+        </form>
+        <div class="scope"><span class="dot"></span><p>Source permissions are selected by the server from your identity. The request cannot change them.</p></div>
+      </section>
+      <section class="card journey" aria-labelledby="journey-title">
+        <div class="section-label">02 / WORKFLOW</div>
+        <div class="heading-row"><h2 id="journey-title">Three roles. One visible trail.</h2><span id="run-status" class="status">Ready</span></div>
+        <ol class="agents">
+          <li id="stage-analyst"><span class="stage-number">1</span><div><h3>Analyst</h3><p>Understand the request and its sources.</p></div><span class="stage-state">Waiting</span></li>
+          <li id="stage-designer"><span class="stage-number">2</span><div><h3>Designer</h3><p>Build a proposal with cited controls.</p></div><span class="stage-state">Waiting</span></li>
+          <li id="stage-reviewer"><span class="stage-number">3</span><div><h3>Reviewer</h3><p>Check the proposal and request corrections.</p></div><span class="stage-state">Waiting</span></li>
+        </ol>
+        <p class="caption">At most two correction rounds. A reviewer result never replaces your decision.</p>
+        <div id="run-meta" class="run-meta">Start a run to inspect its evidence.</div>
+      </section>
+    </div>
+    <div id="evidence" hidden>
+      <div class="evidence-grid">
+        <section class="card" aria-labelledby="sources-title"><div class="section-label">03 / EVIDENCE</div><h2 id="sources-title">Sources used</h2><p class="caption">Open a source to recheck its access permission.</p><div id="sources" class="source-list"></div><pre id="source-text" class="source-text" hidden></pre></section>
+        <section class="card result" aria-labelledby="result-title"><div class="section-label">04 / RESULT</div><h2 id="result-title">The reviewed proposal</h2><div id="proposal"></div><div id="tool-panel" hidden><h3>Checklist tool evidence</h3><pre id="tool-evidence"></pre></div><div id="decision-record" class="run-meta" hidden></div><details><summary>Inspect complete artifact</summary><pre id="artifact"></pre></details></section>
+      </div>
+      <section id="decision-panel" class="card decision" hidden aria-labelledby="decision-title">
+        <div><div class="section-label">05 / YOUR DECISION</div><h2 id="decision-title">Review this exact version</h2><p>Approval publishes this synthetic artifact only. It does not deploy infrastructure or update a business system.</p><code id="artifact-hash"></code></div>
+        <div class="decision-actions"><label class="check"><input id="reviewed" type="checkbox"><span>I have inspected this artifact and its sources.</span></label><div class="button-row"><button id="approve" type="button" disabled>Approve exact version</button><button id="reject" class="secondary" type="button">Reject proposal</button></div></div>
+      </section>
+      <section class="card traces" aria-labelledby="traces-title"><div class="heading-row"><div><div class="section-label">RUN EVIDENCE</div><h2 id="traces-title">Trace and observations</h2></div><span id="trace-count" class="badge"></span></div><p class="caption">Available usage is shown as recorded. Unknown costs are not zero.</p><div class="table-scroll"><table><thead><tr><th>Event</th><th>Role / stage</th><th>Outcome</th><th>Duration</th><th>Tokens in / out</th></tr></thead><tbody id="trace-rows"></tbody></table></div></section>
+    </div>
+    <footer><span>AWS Agent Platform Lab</span><span>Synthetic data · Explicit permissions · Inspectable decisions</span></footer>
+  </main>
+</body>
+</html>

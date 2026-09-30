@@ -1,0 +1,21 @@
+{
+  "authorized": true,
+  "synthetic": true,
+  "documents": [
+    {
+      "id": "SYN-DOC-CHECK",
+      "title": "Synthetic document preparation policy",
+      "text": "This invented demonstration policy allows an agent to propose a list of present or missing documents from synthetic inputs. The agent must not make a real operational decision or change an external record. A human reviews the preparation and retains decision authority. No real organisation, person or business policy is represented."
+    },
+    {
+      "id": "SYN-REVIEW-GATE",
+      "title": "Review, bounded corrections and exact-version approval",
+      "text": "This fictional workflow separates analyst, designer and reviewer roles. Every proposal cites the retrieved source documents. After the first draft, at most two correction rounds are allowed. The workflow stops if problems remain. A positive agent review does not grant human authority. A human must explicitly approve the SHA-256 hash of the exact final artifact before local publication."
+    },
+    {
+      "id": "SYN-LOCAL-EVIDENCE",
+      "title": "Local evidence and bounded publication",
+      "text": "This lab retrieves only its declared synthetic corpus. The declaration is not user authentication or a document access control. The application records roles, revisions, latency, token counts and costs when known. Model responses are untrusted JSON data and are validated. Generated code is never executed. The single post-approval action writes a JSON copy to the fixed published subdirectory of the run. It does not contact a business tool, modify real records or deploy cloud resources."
+    }
+  ]
+}
