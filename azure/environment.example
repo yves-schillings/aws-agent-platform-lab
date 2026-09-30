@@ -1,0 +1,10 @@
+# Copy these settings into your current shell; this file is not auto-loaded.
+AZURE_OPENAI_ENDPOINT=https://<your-resource>.openai.azure.com
+AZURE_OPENAI_DEPLOYMENT=<your-chat-model-deployment>
+AZURE_OPENAI_API_VERSION=v1
+# Set exactly one auth variable in your shell, never in a committed file.
+# AZURE_OPENAI_API_KEY=<from-your-secret-store>
+# AZURE_OPENAI_AD_TOKEN=<short-lived-Entra-token>
+POC_TIMEOUT_SECONDS=45
+POC_MAX_ATTEMPTS=2
+POC_MAX_OUTPUT_TOKENS=2048

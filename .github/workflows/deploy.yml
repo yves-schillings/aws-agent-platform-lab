@@ -1,0 +1,93 @@
+name: Publish image or update existing AWS service
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_only:
+        description: "Only publish the image (required for first Terraform service bootstrap)"
+        type: boolean
+        required: true
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aws-lab-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    environment: aws-lab
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+      ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+      ECS_SERVICE_ARN: ${{ vars.ECS_SERVICE_ARN }}
+      APP_BASE_URL: ${{ vars.APP_BASE_URL }}
+      PUBLISH_ONLY: ${{ inputs.publish_only }}
+      LOCAL_DEMO_MODE: "true"
+      AWS_EC2_METADATA_DISABLED: "true"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Fail closed on missing configuration
+        run: |
+          test -n "$AWS_ROLE_ARN" && test -n "$AWS_REGION" && test -n "$AWS_ACCOUNT_ID" && test -n "$ECR_REPOSITORY"
+          if [ "$PUBLISH_ONLY" != "true" ]; then test -n "$ECS_SERVICE_ARN"; fi
+      - name: Offline tests before AWS authentication
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install --no-deps -e .
+          python -m unittest discover -s tests -v
+          python -m unittest discover -s scripts -p 'deploy_test.py' -v
+      - uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c # v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          allowed-account-ids: ${{ env.AWS_ACCOUNT_ID }}
+          role-session-name: lab-${{ github.run_id }}
+      - uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2
+      - name: Publish an immutable commit image
+        id: image
+        shell: bash
+        run: |
+          set -euo pipefail
+          registry="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+          image="$registry/$ECR_REPOSITORY:$GITHUB_SHA"
+          if ! aws ecr describe-images --repository-name "$ECR_REPOSITORY" --image-ids imageTag="$GITHUB_SHA" > /dev/null 2>&1; then
+            docker build --tag "$image" .
+            docker push "$image"
+          fi
+          digest=$(aws ecr describe-images --repository-name "$ECR_REPOSITORY" --image-ids imageTag="$GITHUB_SHA" --query 'imageDetails[0].imageDigest' --output text)
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          echo "uri=$registry/$ECR_REPOSITORY@$digest" >> "$GITHUB_OUTPUT"
+          echo "Immutable image: $registry/$ECR_REPOSITORY@$digest" >> "$GITHUB_STEP_SUMMARY"
+      - name: Update existing Express service and preserve all other container settings
+        if: inputs.publish_only == false
+        env:
+          TARGET_IMAGE: ${{ steps.image.outputs.uri }}
+        run: |
+          python scripts/deploy_express.py --expected-account-id "$AWS_ACCOUNT_ID" --region "$AWS_REGION" --service-arn "$ECS_SERVICE_ARN" --image-uri "$TARGET_IMAGE" --output artifacts/deploy-receipt.json --execute
+      - name: Check public health endpoint
+        if: inputs.publish_only == false && env.APP_BASE_URL != ''
+        run: |
+          curl --fail --retry 3 --max-time 20 "$APP_BASE_URL/healthz"
+          echo "Health endpoint passed. Authenticated tenant/RAG smoke tests remain an operator check." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always() && inputs.publish_only == false
+        with:
+          name: deployment-receipt-${{ github.run_id }}
+          path: artifacts/deploy-receipt.json
+          if-no-files-found: warn
+          retention-days: 7

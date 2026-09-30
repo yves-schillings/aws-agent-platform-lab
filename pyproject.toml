@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aws-agent-platform-lab"
+version = "0.1.0"
+description = "AWS-focused agent platform lab with synthetic data, Bedrock inference and controlled workflows"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+aws = ["boto3>=1.35,<2"]
+web = [
+  "fastapi>=0.115,<1",
+  "uvicorn>=0.34,<1",
+  "PyJWT[crypto]>=2.10.1,<3",
+  "boto3>=1.35,<2",
+  "httpx>=0.28,<1",
+  "mcp>=1.28,<2",
+  "opentelemetry-api>=1.30,<2",
+  "opentelemetry-sdk>=1.30,<2",
+]
+test = ["httpx>=0.28,<1"]
+
+[project.scripts]
+aws-agent-platform-lab = "aws_agent_platform_lab.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+aws_agent_platform_lab = ["static/*"]

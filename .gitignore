@@ -1,0 +1,62 @@
+# Python and local environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Secrets and machine-specific configuration
+.env
+.env.*
+!.env.example
+.aws/
+credentials
+credentials.*
+secrets/
+*.pem
+*.key
+*.pfx
+*.p12
+*.kdbx
+
+# Terraform state, plans and local overrides
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Generated traces, run results, logs and local editor state
+demo_runs/
+.lab-data/
+artifacts/
+*.log
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Keep external business documents outside this code repository
+*.msg
+*.eml
+*.pst
+*.ost
+*.pptx
+*.docx
+*.pdf

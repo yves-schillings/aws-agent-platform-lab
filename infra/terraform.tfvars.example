@@ -1,0 +1,21 @@
+# Replace every REQUIRED value. This file is not automatically loaded.
+# Cloud account/model access, cost estimate and publication approval are required.
+aws_region                         = "REQUIRED_REGION"
+aws_account_id                     = "REQUIRED_ACCOUNT_ID"
+availability_zones                 = ["REQUIRED_ZONE_A", "REQUIRED_ZONE_B"]
+expires_on                         = "REQUIRED_YYYY-MM-DD"
+allow_paid_resources               = false
+reviewed_monthly_cost_limit_usd     = 0
+bedrock_model_id                   = "REQUIRED_MODEL_OR_PROFILE_ID"
+bedrock_inference_resource_arns     = ["REQUIRED_EXACT_MODEL_AND_PROFILE_ARNS"]
+github_repository                  = "REQUIRED_OWNER/REQUIRED_REPOSITORY"
+github_oidc_subjects                = ["REQUIRED_EXACT_OBSERVED_SUBJECT_FOR_GITHUB_ENVIRONMENT"]
+create_github_oidc_provider         = false
+existing_github_oidc_provider_arn   = "REQUIRED_EXISTING_OIDC_ARN_OR_ENABLE_CREATION"
+enable_service                     = false
+app_image_digest                   = ""
+public_base_url                    = ""
+access_policy = {
+  team_alpha = { tenant = "alpha", access_level = "internal" }
+  team_beta  = { tenant = "beta", access_level = "internal" }
+}

@@ -1,0 +1,6 @@
+{
+  "id": "synthetic-document-workflow",
+  "title": "Design a controlled synthetic document preparation workflow",
+  "request": "Propose a workflow that prepares a fictional document check. Identify present and missing information, cite the reference documents and send the proposal to a human without making an operational decision. Separate analyst, designer and reviewer roles. Allow at most two correction rounds, require approval of the exact final artifact and publish only the approved JSON locally. No real person, external business system or actual organisation is involved.",
+  "synthetic": true
+}

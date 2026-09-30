@@ -1,0 +1,72 @@
+name: Roll back to a known-good image
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_digest:
+        description: "Known-good image digest, sha256: followed by 64 lowercase hex characters"
+        type: string
+        required: true
+      expected_current_digest:
+        description: "Currently active image digest, to prevent overwriting a newer deployment"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aws-lab-deployment
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: aws-lab
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+      ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+      ECS_SERVICE_ARN: ${{ vars.ECS_SERVICE_ARN }}
+      APP_BASE_URL: ${{ vars.APP_BASE_URL }}
+      TARGET_DIGEST: ${{ inputs.target_digest }}
+      CURRENT_DIGEST: ${{ inputs.expected_current_digest }}
+      AWS_EC2_METADATA_DISABLED: "true"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: Validate explicit rollback inputs
+        run: |
+          [[ "$TARGET_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$CURRENT_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          test -n "$AWS_ROLE_ARN" && test -n "$AWS_ACCOUNT_ID" && test -n "$AWS_REGION" && test -n "$ECR_REPOSITORY" && test -n "$ECS_SERVICE_ARN"
+          python -m pip install -r requirements.txt
+          python -m unittest discover -s scripts -p 'deploy_test.py' -v
+      - uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c # v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          allowed-account-ids: ${{ env.AWS_ACCOUNT_ID }}
+          role-session-name: rollback-${{ github.run_id }}
+      - name: Restore the selected image and verify the active service revision
+        run: |
+          repository="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY"
+          python scripts/rollback_express.py --expected-account-id "$AWS_ACCOUNT_ID" --region "$AWS_REGION" --service-arn "$ECS_SERVICE_ARN" --image-uri "$repository@$TARGET_DIGEST" --expected-current-image "$repository@$CURRENT_DIGEST" --output artifacts/rollback-receipt.json --execute
+      - name: Health check after rollback
+        if: env.APP_BASE_URL != ''
+        run: curl --fail --retry 3 --max-time 20 "$APP_BASE_URL/healthz"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: rollback-receipt-${{ github.run_id }}
+          path: artifacts/rollback-receipt.json
+          if-no-files-found: warn
+          retention-days: 7
