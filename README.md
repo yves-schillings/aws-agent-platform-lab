@@ -1,6 +1,41 @@
 # AWS Agent Platform Lab
 
+By **Yves Schillings, Secloudis** · [secloudis.com](https://secloudis.com/)
+
 A hands-on AWS agent platform lab using synthetic data, Amazon Bedrock and controlled multi-agent workflows.
+
+The delivery sequence is AWS first: deploy and verify this Bedrock implementation. An Azure variant is a separate later phase.
+
+## Architecture deck and deployment documentation
+
+![Multi-Agentic Workflow on AWS by Yves Schillings, Secloudis](docs/assets/slides/slide-01.png)
+
+[PowerPoint](docs/presentation/Secloudis_Multi_Agentic_Workflow_on_AWS_v2.1.pptx) · [PDF](docs/presentation/Secloudis_Multi_Agentic_Workflow_on_AWS_v2.1.pdf)
+
+The **Multi-Agentic Workflow on AWS** deck by Yves Schillings, Secloudis describes the **target Factory**: five worker roles, four human approval gates, isolated candidate execution and controlled release of a separate target application. The implementation status below remains the authority for what currently works. The target diagram is not a claim of a completed AWS deployment.
+
+The four human checkpoints are **G1 Scope**, **G2 Design**, **G3 Quality** and **G4 Release**. **G means Gate**. Release approval authorises deployment of the exact reviewed version.
+
+The [documentation portal](docs/README.md) connects each slide to its explanation, deployment steps, code, prerequisites and required evidence. Follow the [AWS runbook](docs/deployment.md) for the current deployment candidate; missing Factory components are identified before their deployment can be claimed.
+
+| Slide | Architecture and deployment guide |
+|---|---|
+| 01 | [Multi-Agentic Workflow on AWS](docs/slides/01-ai-factory-on-aws.md) |
+| 02 | [Target scope and current evidence](docs/slides/02-target-scope-and-current-evidence.md) |
+| 03 | [Inside the Factory: logical architecture](docs/slides/03-logical-architecture.md) |
+| 04 | [AWS deployment architecture](docs/slides/04-aws-deployment-architecture.md) |
+| 05 | [Delivery workflow and four human gates](docs/slides/05-workflow-and-human-gates.md) |
+| 06 | [Five workers and task contracts](docs/slides/06-workers-and-task-contracts.md) |
+| 07 | [Context, retrieval and source permissions](docs/slides/07-context-and-retrieval.md) |
+| 08 | [Sandbox isolation and trusted validation](docs/slides/08-sandbox-and-validation.md) |
+| 09 | [Run state, evidence and version binding](docs/slides/09-state-evidence-and-versions.md) |
+| 10 | [Integration and migration risk controls](docs/slides/10-integration-and-migration-risks.md) |
+| 11 | [Performance and data consistency controls](docs/slides/11-performance-and-data-consistency.md) |
+| 12 | [AI risks and approval integrity](docs/slides/12-ai-risks-and-approval-integrity.md) |
+| 13 | [Infrastructure provisioning and bootstrap](docs/slides/13-provisioning-and-bootstrap.md) |
+| 14 | [Candidate build, approval and release](docs/slides/14-candidate-release.md) |
+| 15 | [Operations, recovery and cost controls](docs/slides/15-operations-recovery-and-cost.md) |
+| 16 | [Documentation and required proof](docs/slides/16-documentation-and-proof.md) |
 
 ## Current implementation
 
