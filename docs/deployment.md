@@ -38,9 +38,33 @@ docker logs aws-agent-lab-local
 docker rm -f aws-agent-lab-local
 ```
 
-On the development workstation the Docker daemon was unavailable. The same smoke script passed against a local Python server, including static UI assets, offline auth configuration, retrieval, MCP/agents and the human approval gate. A successful Linux container build remains a CI/operator check.
+On the development workstation the Docker daemon was unavailable. [GitHub Actions run 36757951488](https://github.com/yves-schillings/aws-agent-platform-lab/actions/runs/36757951488) subsequently passed a real Linux Docker build and the offline container smoke test for commit `e24e882046112b45f8b20ebba64e6f268eab7842`, including packaged UI assets, offline auth configuration, retrieval, MCP/agents and the human approval gate. This is container evidence in simulated local mode; an AWS-deployed image still needs the checks below.
+
+On 30 September 2026, isolated `pip-audit==2.10.1` audited the 42 pinned Python dependencies on Windows against the PyPI advisory service: no known vulnerabilities and no skipped packages. CI now runs the same strict dependency check on Linux and retains dated JSON reports for seven days. Vulnerabilities and scanner failures fail the job. This check sends public dependency names/versions to PyPI; it does not scan source code, operating-system packages or the container's image layers. Inspect ECR image findings before cloud image promotion.
+
+The [restart verification](persistence-verification.md) records an actual local HTTP process restart. Approved and rejected decisions, source provenance and hashes survive with the same storage directory; cross-owner access and replay attempts remain denied. That evidence does not establish S3 persistence or recovery of an interrupted in-flight task.
 
 ## 2. Establish explicit deployment inputs
+
+### Connect the operator workstation
+
+AWS CLI 2.37.6 was installed and its version checked on the Windows development workstation using the signed Amazon per-user MSI. No AWS login or resource operation was performed. Open a new terminal for the updated PATH; the per-user executable is `%LOCALAPPDATA%\Programs\Amazon\AWSCLIV2\aws.exe`. Other workstations can follow the [official AWS CLI installation instructions](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
+
+After the account and region are agreed, use the account's existing authorized sign-in method. For IAM Identity Center, obtain the real start URL, SSO region, account and role from the administrator, then use:
+
+```powershell
+aws configure sso --profile aws-agent-lab
+aws sso login --profile aws-agent-lab
+aws sts get-caller-identity --profile aws-agent-lab
+```
+
+The SSO region is the directory's location and may differ from the workload region. [AWS SSO profile documentation](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sso.html)
+
+For an authorized console identity outside Identity Center, `aws login --profile aws-agent-lab` is an alternative browser sign-in flow. It requires the appropriate local-development sign-in permission. Tools that do not support login sessions directly can use the documented separate `credential_process` profile; verify SDK and Terraform identity resolution before planning. Do not print exported credentials to capture logs. [AWS console sign-in for local development](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sign-in.html)
+
+Compare the returned account and role with the approved deployment identity before any resource action. Keep credentials in the normal AWS profile/cache outside the repository. The operator role used for Terraform is distinct from the application and GitHub roles. These sign-in commands remain operator actions to perform with the user; account access has not been established.
+
+### Record the deployment inputs
 
 Copy `infra/terraform.tfvars.example` to an ignored `infra/terraform.tfvars` and replace every `REQUIRED` value. Do not use invented accounts, regions, repository identifiers or model ARNs. Confirm:
 
