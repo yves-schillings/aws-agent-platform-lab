@@ -32,6 +32,85 @@ that still need live evidence. I will show the exact environment and run.”
 de AWS-diensten die nog in de echte omgeving moeten worden aangetoond. Ik toon
 precies welke omgeving en uitvoering ik gebruik.”
 
+## Explain the target architecture in two to three minutes
+
+**Multi-Agentic Workflow on AWS — Yves Schillings, Secloudis.** Use the
+[documentation index](README.md), [logical architecture](slides/03-logical-architecture.md),
+[AWS architecture](slides/04-aws-deployment-architecture.md) and
+[four human gates](slides/05-workflow-and-human-gates.md) as visual support.
+The two scripts below explain the same target and evidence boundary. Practise
+each aloud; the duration is a rehearsal target, not a measured result.
+
+### English
+
+“This is Multi-Agentic Workflow on AWS, by Yves Schillings, Secloudis. The target
+is a controlled software-delivery workflow. A Python controller coordinates
+five specialist workers: Analyst, Architect, Code author, Tester and Reviewer.
+Amazon Bedrock supplies the language-model inference. The controller owns the
+sequence, permissions, time limits and budgets; the model cannot grant itself
+extra authority.
+
+The Analyst clarifies requirements. The Architect proposes a design. The Code
+author produces a candidate, the Tester proposes checks, and the Reviewer
+examines the results. Protected tests run separately from the generated code,
+so a worker cannot declare its own output correct simply by writing a report.
+
+Four human gates retain accountability: scope at G1, design at G2, quality at
+G3 and release at G4. Humans decide because models can misunderstand a request,
+invent facts or repeat another worker’s mistake. Each decision must refer to
+the exact version being reviewed. A later change cannot silently reuse an old
+approval. Only the protected release pipeline may deploy the approved candidate
+to a separate application.
+
+Three shared services support this. The context service retrieves only permitted
+documents and keeps source versions and citations. An isolated sandbox runs
+candidate code without an application task role or production credentials, with
+bounded resources and controlled network access. The evidence store retains
+artifacts, tests, decisions and their relationships for review.
+
+Today, the verified local demonstration is smaller: three roles—Analyst,
+Designer and Reviewer—and one decision on an exact artifact. It uses mock model
+answers and a real local, read-only MCP tool. The five workers, four gates,
+generated-code sandbox and candidate release are target work. AWS and Bedrock
+must still be deployed and verified; the diagram itself is not that proof.”
+
+### Nederlands
+
+“Dit is Multi-Agentic Workflow on AWS, van Yves Schillings, Secloudis. Het doel
+is een gecontroleerd proces voor softwareontwikkeling en oplevering. Een
+Python-controller stuurt vijf gespecialiseerde rollen aan: Analyst, Architect,
+Code author, Tester en Reviewer. Amazon Bedrock levert de taalmodelaanroepen.
+De controller bepaalt de volgorde, toegangsrechten, tijdslimieten en budgetten.
+Het model kan zichzelf geen extra bevoegdheden geven.
+
+De Analyst verduidelijkt de vereisten. De Architect stelt een ontwerp voor. De
+Code author maakt een kandidaatversie, de Tester stelt controles voor en de
+Reviewer beoordeelt de resultaten. Beschermde tests draaien los van de
+gegenereerde code. Een agent kan zijn eigen resultaat dus niet correct verklaren
+door alleen een positief rapport te schrijven.
+
+Vier menselijke beslismomenten behouden de verantwoordelijkheid: de scope bij
+G1, het ontwerp bij G2, de kwaliteit bij G3 en de vrijgave bij G4. Mensen
+beslissen omdat modellen een vraag verkeerd kunnen begrijpen, feiten kunnen
+verzinnen of dezelfde fout kunnen herhalen. Elke beslissing moet aan de exacte
+beoordeelde versie gekoppeld zijn. Een wijziging mag geen oude goedkeuring
+stilzwijgend hergebruiken. Alleen de beschermde releasepipeline mag de
+goedgekeurde kandidaat als afzonderlijke applicatie uitrollen.
+
+Drie gedeelde diensten ondersteunen dit. De contextdienst haalt uitsluitend
+toegestane documenten op en bewaart bronversies en verwijzingen. Een geïsoleerde
+sandbox voert kandidaatcode uit zonder applicatie-taskrol of
+productietoegangsgegevens, met begrensde middelen en gecontroleerde
+netwerktoegang. De bewijsopslag bewaart resultaten, tests, beslissingen en hun
+onderlinge verbanden.
+
+Vandaag is de lokaal geverifieerde demonstratie kleiner: drie rollen—Analyst,
+Designer en Reviewer—en één beslissing over een exact resultaat. Ze gebruikt
+gesimuleerde modelantwoorden en een echt lokaal MCP-hulpmiddel dat alleen leest.
+De vijf rollen, vier beslismomenten, sandbox voor gegenereerde code en vrijgave
+van een kandidaat moeten nog worden gebouwd. AWS en Bedrock moeten nog worden
+uitgerold en geverifieerd. Het architectuurschema alleen bewijst dat niet.”
+
 ## Five-minute demonstration
 
 1. Show the GitHub source and the tested commit. If AWS is deployed, also show its

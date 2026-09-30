@@ -46,6 +46,10 @@ The [restart verification](persistence-verification.md) records an actual local 
 
 ## 2. Establish explicit deployment inputs
 
+For a new account, complete [Stage 0: AWS account setup](aws-account-setup.md)
+first. `Secloudis Lab` registration is in progress; activation and operator access
+have not yet been confirmed. Account creation alone does not provision this lab.
+
 ### Connect the operator workstation
 
 AWS CLI 2.37.6 was installed and its version checked on the Windows development workstation using the signed Amazon per-user MSI. No AWS login or resource operation was performed. Open a new terminal for the updated PATH; the per-user executable is `%LOCALAPPDATA%\Programs\Amazon\AWSCLIV2\aws.exe`. Other workstations can follow the [official AWS CLI installation instructions](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
