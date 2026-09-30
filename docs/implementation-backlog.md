@@ -1,6 +1,6 @@
 # Initial GitHub issue backlog
 
-These are issue specifications maintained in the repository. They are not published GitHub issues. The implementation has advanced beyond the original CLI baseline; the table below distinguishes current code and local proof from the remaining cloud evidence. No item is complete merely because its files exist.
+These are issue specifications maintained in the repository. They are not published GitHub issues. The implementation has advanced beyond the original CLI baseline; the table below distinguishes current code, local proof and hosted offline checks from the remaining cloud evidence. [GitHub Actions run 36757951488](https://github.com/yves-schillings/aws-agent-platform-lab/actions/runs/36757951488) passed for commit `e24e882046112b45f8b20ebba64e6f268eab7842`, including application/deployment tests, Terraform initialization with a read-only lock file and validation, and a Linux Docker build with an offline workflow smoke test. This verifies the container in local demo mode; it provides no AWS deployment, identity, ingestion or inference proof. No item is complete merely because its files exist.
 
 | Item | Implemented or locally verified | Remaining acceptance |
 |---|---|---|
@@ -8,10 +8,10 @@ These are issue specifications maintained in the repository. They are not publis
 | LAB-02 | Browser/API, sources, exact-hash decisions, full local journey | Deployed browser journey |
 | LAB-03 | JWT verification, group policy, two simulated tenants, denial tests | Two real Cognito users, login and deployed denial tests |
 | LAB-04 | Mandatory-filter Retrieve adapter, provenance checks, ingestion-file generator | Real embeddings/index ingestion and retrieval evaluation |
-| LAB-05 | Real local MCP stdio round trip, scope and argument denial tests | Same tool in the deployed container |
-| LAB-06 | Dockerfile, dependency lock, packaged assets, container smoke script | Successful container build/run evidence |
+| LAB-05 | Real MCP stdio round trip, scope and argument denial tests; tool exercised in the offline container CI workflow | Same tool in the AWS-deployed container |
+| LAB-06 | Successful Linux Docker build and offline run to the approval gate in the linked CI run; dependency lock and packaged UI assets | Recorded vulnerability/dependency findings, restart/storage behavior and AWS container evidence |
 | LAB-07 | Terraform schema/static validation and scoped roles | Reviewed plan, deployment, monitoring and teardown |
-| LAB-08 | Pinned workflow actions, deployment/rollback scripts and contract tests | Hosted checks, actual OIDC trust and deployment/rollback runs |
+| LAB-08 | Pinned workflow actions, deployment/rollback scripts and contract tests; hosted offline tests, Terraform validation and Docker smoke passed in the linked CI run | Actual OIDC trust and AWS deployment/rollback runs |
 | LAB-09 | Safe structured events, OpenTelemetry instrumentation, persisted decisions | CloudWatch evidence and operational fault rehearsal |
 | LAB-10 | English/Dutch explanation guide and synthetic scenarios | Cloud evaluation and presenter rehearsal |
 | LAB-11 | Explicit production follow-up boundary | Enterprise decisions and operating evidence |
