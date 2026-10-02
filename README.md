@@ -32,7 +32,7 @@ The repository is public. Source availability does not establish that an AWS ser
 
 - By default the five roles return fixed examples. With `FACTORY_PROVIDER=mock`, `aws` or `azure`, each role calls that model adapter with the reference documents permitted for the caller; an answer is kept only if its JSON matches the role schema and its citations name those documents, otherwise the run stops as failed.
 - In AWS mode, `FACTORY_ENABLED=true` (Terraform `enable_factory = true`) exposes the Factory API to Cognito-verified users; documents then come from Bedrock Knowledge Bases.
-- Proposed code and tests remain inert text: nothing is built, executed or deployed, and G4 records a decision only. Separate gate-approver roles, durable cloud checkpoints and correction/resubmission remain future work. See [the model-backed Factory notes](docs/factory-model-backed.md).
+- Proposed code and tests remain inert text: nothing is built, executed or deployed, and G4 records a decision only. In AWS mode, each gate requires a separate Cognito-authenticated identity in its matching `factory-g1-approver` through `factory-g4-approver` group; the run owner cannot approve it. Durable cloud checkpoints and correction/resubmission remain future work. See [the model-backed Factory notes](docs/factory-model-backed.md).
 
 The `/factory` browser prototype is a temporary inspection harness. The conversational interface is still being selected; [Claude, Codex and Copilot Studio access](docs/conversational-access.md) describes the common MCP boundary and the human-approval requirements. MCP means Model Context Protocol. No connection to those clients or remote AWS Factory is claimed. See [development stages and preflight](docs/development-start.md).
 
