@@ -121,7 +121,8 @@ class ProviderTests(unittest.TestCase):
         self.assertEqual(model.messages[0].type, "system")
         self.assertEqual(model.messages[1].type, "human")
         self.assertEqual(provider.last_usage["input_tokens"], 17)
-        self.assertEqual(create_provider("aws_langchain").name, "aws-langchain")
+        with patch.dict("os.environ", AWS_ENV):
+            self.assertEqual(create_provider("aws_langchain").name, "aws-langchain")
 
     def test_langchain_bedrock_failure_does_not_reveal_remote_body(self):
         class Model:
