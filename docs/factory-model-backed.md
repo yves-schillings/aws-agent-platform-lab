@@ -12,7 +12,7 @@ This increment turns the five-role Factory from fixed examples into model calls,
 | `FACTORY_PROVIDER=aws-langchain` | Roles call the same Bedrock model through `LangChainBedrockProvider` and `ChatBedrockConverse`; retrieval remains the same scoped Knowledge Base path. |
 | `FACTORY_ENABLED=true` (AWS mode) | Exposes `/api/factory/*` to Cognito-verified users. Without it the routes return 404. |
 
-Terraform: `enable_factory = true` sets `FACTORY_ENABLED=true`, `FACTORY_PROVIDER=aws` and `LAB_DATA_DIR=/app/artifacts/lab-data` (the container's writable directory). Default is `false`.
+Terraform: `enable_factory = true` sets `FACTORY_ENABLED=true`, `FACTORY_PROVIDER=aws-langchain` and `LAB_DATA_DIR=/app/artifacts/lab-data` (the container's writable directory). Set `factory_provider = "aws"` only when the direct Boto3 adapter is intentionally selected. Default is `false`.
 
 ## How one role call works
 
