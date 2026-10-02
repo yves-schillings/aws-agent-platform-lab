@@ -160,9 +160,18 @@ CLOUD = {
     "COGNITO_DOMAIN": "https://synthetic.auth.eu-west-1.amazoncognito.com",
     "COGNITO_REDIRECT_URI": "https://lab.example.org/auth/callback",
     "ACCESS_POLICY_JSON": json.dumps({"demo-alpha": {"tenant": "alpha", "access_level": "internal"},
+                                      "factory-g1-approver": {"tenant": "alpha", "access_level": "internal"},
+                                      "factory-g2-approver": {"tenant": "alpha", "access_level": "internal"},
+                                      "factory-g3-approver": {"tenant": "alpha", "access_level": "internal"},
+                                      "factory-g4-approver": {"tenant": "alpha", "access_level": "internal"},
                                       "demo-beta": {"tenant": "beta", "access_level": "internal"}}),
 }
-TOKENS = {"alpha-token": ("user-alpha", "alpha"), "beta-token": ("user-beta", "beta")}
+TOKENS = {
+    "alpha-token": ("user-alpha", ("demo-alpha",), "alpha"),
+    "approver-token": ("user-approver", ("demo-alpha", "factory-g1-approver", "factory-g2-approver",
+                                             "factory-g3-approver", "factory-g4-approver"), "alpha"),
+    "beta-token": ("user-beta", ("demo-beta",), "beta"),
+}
 
 
 class FakeVerifier:
@@ -171,8 +180,8 @@ class FakeVerifier:
         from aws_agent_platform_lab.auth import AuthError
         if token not in TOKENS:
             raise AuthError("Invalid synthetic test token.")
-        subject, tenant = TOKENS[token]
-        return Principal(subject, ("demo-" + tenant,), tenant, "internal")
+        subject, groups, tenant = TOKENS[token]
+        return Principal(subject, groups, tenant, "internal")
 
 
 class CognitoFactoryWebTests(unittest.TestCase):
@@ -198,13 +207,13 @@ class CognitoFactoryWebTests(unittest.TestCase):
         state = result.json()
         self.assertFalse(state["identity_simulated"])
         self.assertTrue(state["model_backed"])
-        self.assertTrue(any("Cognito-authenticated run owner" in item for item in state["limitations"]))
+        self.assertTrue(any("separate Cognito-authenticated approver" in item for item in state["limitations"]))
         url = f"/api/factory/runs/{state['run_id']}/decision"
         for gate in GATES:
             pending = state["pending_gate"]
-            result = self.client.post(url, headers=self.bearer("alpha-token"), json={
+            result = self.client.post(url, headers=self.bearer("approver-token"), json={
                 "gate": gate, "artifact_hash": pending["artifact_hash"],
-                "decision": "approve", "reason": "Reviewed by the authenticated owner."})
+                "decision": "approve", "reason": "Reviewed by the authorised approver."})
             self.assertEqual(result.status_code, 200, result.text)
             state = result.json()
         self.assertEqual(state["status"], "release_ready")
@@ -228,6 +237,22 @@ class CognitoFactoryWebTests(unittest.TestCase):
             "gate": pending["gate"], "artifact_hash": pending["artifact_hash"],
             "decision": "approve", "reason": "Attempted by another company."})
         self.assertEqual(decision.status_code, 404)
+
+    def test_run_owner_and_wrong_gate_approver_cannot_approve(self):
+        state = self.client.post("/api/factory/runs", headers=self.bearer("alpha-token"),
+                                 json={"request_text": REQUEST, "synthetic": True}).json()
+        url = f"/api/factory/runs/{state['run_id']}/decision"
+        body = {"gate": "G1", "artifact_hash": state["pending_gate"]["artifact_hash"],
+                "decision": "approve", "reason": "Attempted self approval."}
+        self.assertEqual(self.client.post(url, headers=self.bearer("alpha-token"), json=body).status_code, 403)
+        wrong = dict(TOKENS)
+        wrong["wrong-gate-token"] = ("user-wrong", ("demo-alpha", "factory-g2-approver"), "alpha")
+        original = TOKENS.copy()
+        try:
+            TOKENS.clear(); TOKENS.update(wrong)
+            self.assertEqual(self.client.post(url, headers=self.bearer("wrong-gate-token"), json=body).status_code, 403)
+        finally:
+            TOKENS.clear(); TOKENS.update(original)
 
     def test_local_factory_refuses_a_verified_looking_principal(self):
         local = FactoryService(self.root / "local", provider=MockProvider())
