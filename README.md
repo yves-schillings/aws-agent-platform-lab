@@ -8,78 +8,11 @@ The project is intended as an open-source foundation that organisations can insp
 
 The delivery sequence is AWS first: deploy and verify this Bedrock implementation. An Azure variant is a separate later phase.
 
-## Architecture deck and deployment documentation
+## Engineering documentation
 
-- [English article for review](docs/secloudis-article.md), with eight article figures.
-- [Complete technical guide](docs/technical-guide.md), including deployment instructions and the detailed cloud extensions.
-- The latest PowerPoint preserves the original slides and adds cleaned article exports without slide numbers or internal references. The numbered engineering pages below document the original 41-slide subset.
+The Secloudis article, Word review copy, presentation masters, PDFs and figure exports are maintained outside this source repository. This repository contains the application source, tests, infrastructure definitions, runbooks and technical implementation documentation.
 
-
-![Multi-Agentic Workflow on AWS by Yves Schillings, Secloudis](docs/assets/slides/slide-01.png)
-
-[PowerPoint](docs/presentation/Secloudis_Multi_Agentic_Workflow_on_AWS_v2.15.pptx) · [PDF](docs/presentation/Secloudis_Multi_Agentic_Workflow_on_AWS_v2.15.pdf)
-
-The **Multi-Agentic Workflow on AWS** deck by Yves Schillings, Secloudis describes the **target Factory**: five worker roles, four human approval gates, isolated candidate execution and controlled release of a separate target application. The implementation status below remains the authority for what currently works. The target diagram is not a claim of a completed AWS deployment.
-
-**[Global architecture: shared Factory, three companies and external organisations](docs/slides/26-one-factory-several-companies.md)**
-
-[Company connections through MCP](docs/slides/27-company-apis-and-human-approvals.md) · [Python workflow](docs/slides/30-langgraph-workflow-in-python.md) · [Application APIs](docs/slides/31-shared-application-and-company-apis.md) · [Actors and responsibilities](docs/slides/32-actors-and-responsibilities.md) · [Business and delivery ecosystem](docs/slides/33-business-and-delivery-ecosystem.md) · [Business functions and hosting](docs/slides/34-business-functions-and-hosting.md) · [Technical exchange contracts](docs/slides/35-synthetic-affiliation-consultation-flow.md)
-
-**[Keep the client, workflow and model separate: complete diagram](docs/slides/37-client-workflow-model-separation.md)**
-
-[Conversational client options](docs/slides/38-conversational-client-options.md) · [Human approval across clients](docs/slides/39-human-approval-across-clients.md) · [Model hosting and data boundaries](docs/slides/40-model-hosting-and-data-boundaries.md) · [Conversational access delivery](docs/slides/41-conversational-access-delivery.md)
-
-The four human checkpoints are **G1 Scope**, **G2 Design**, **G3 Quality** and **G4 Release**. **G means Gate**. Release approval authorises deployment of the exact reviewed version.
-
-The [documentation portal](docs/README.md) connects all 41 slides to their explanation, deployment steps, code, prerequisites and required evidence. Slides 17–24 add the incremental delivery approach and [epic/feature backlog](docs/backlog/epics-features.md), retaining the complete Factory target; slide 25 explains open-source reuse and enterprise value, and slides 26–35 describe the proposed shared company platform, Python workflow, common application and human/software responsibilities. Slides 36–41 form a dedicated section on conversational access: the complete client/workflow/model diagram, client options, human approval, inference/data boundaries and delivery proof. Follow the [AWS runbook](docs/deployment.md) for the current deployment candidate; missing Factory components are identified before their deployment can be claimed.
-
-| Slide | Architecture and deployment guide |
-|---|---|
-| 01 | [Multi-Agentic Workflow on AWS](docs/slides/01-ai-factory-on-aws.md) |
-| 02 | [Target scope and current evidence](docs/slides/02-target-scope-and-current-evidence.md) |
-| 03 | [Inside the Factory: logical architecture](docs/slides/03-logical-architecture.md) |
-| 04 | [AWS deployment architecture](docs/slides/04-aws-deployment-architecture.md) |
-| 05 | [Delivery workflow and four human gates](docs/slides/05-workflow-and-human-gates.md) |
-| 06 | [Five Software Workers and Task Contracts](docs/slides/06-workers-and-task-contracts.md) |
-| 07 | [Context, retrieval and source permissions](docs/slides/07-context-and-retrieval.md) |
-| 08 | [Sandbox isolation and trusted validation](docs/slides/08-sandbox-and-validation.md) |
-| 09 | [Run state, evidence and version binding](docs/slides/09-state-evidence-and-versions.md) |
-| 10 | [Integration and migration risk controls](docs/slides/10-integration-and-migration-risks.md) |
-| 11 | [Performance and data consistency controls](docs/slides/11-performance-and-data-consistency.md) |
-| 12 | [AI risks and approval integrity](docs/slides/12-ai-risks-and-approval-integrity.md) |
-| 13 | [Infrastructure provisioning and bootstrap](docs/slides/13-provisioning-and-bootstrap.md) |
-| 14 | [Candidate build, approval and release](docs/slides/14-candidate-release.md) |
-| 15 | [Operations, recovery and cost controls](docs/slides/15-operations-recovery-and-cost.md) |
-| 16 | [Documentation and required proof](docs/slides/16-documentation-and-proof.md) |
-| 17 | [Incremental delivery approach](docs/slides/17-incremental-delivery-approach.md) |
-| 18 | [Epic roadmap](docs/slides/18-epic-roadmap.md) |
-| 19 | [Foundation features](docs/slides/19-foundation-features.md) |
-| 20 | [Live demonstration features](docs/slides/20-live-demo-features.md) |
-| 21 | [Factory execution features](docs/slides/21-factory-execution-features.md) |
-| 22 | [Release and production features](docs/slides/22-release-production-features.md) |
-| 23 | [First AWS demo acceptance](docs/slides/23-first-aws-demo-acceptance.md) |
-| 24 | [Backlog refinement and evidence](docs/slides/24-backlog-refinement-evidence.md) |
-| 25 | [Open-source reuse and enterprise value](docs/slides/25-open-source-reuse-and-enterprise-value.md) |
-| 26 | [Shared Factory and Business Connections](docs/slides/26-one-factory-several-companies.md) |
-| 27 | [Company Connections through MCP](docs/slides/27-company-apis-and-human-approvals.md) |
-| 28 | [AWS First, More Clouds Later](docs/slides/28-aws-first-more-clouds-later.md) |
-| 29 | [Building the Shared Company Platform](docs/slides/29-building-the-shared-company-platform.md) |
-| 30 | [LangGraph Workflow in Python](docs/slides/30-langgraph-workflow-in-python.md) |
-| 31 | [Shared Application and Company APIs](docs/slides/31-shared-application-and-company-apis.md) |
-| 32 | [Actors and Responsibilities](docs/slides/32-actors-and-responsibilities.md) |
-| 33 | [Business and Delivery Ecosystem](docs/slides/33-business-and-delivery-ecosystem.md) |
-| 34 | [Business Functions and Hosting](docs/slides/34-business-functions-and-hosting.md) |
-| 35 | [Synthetic Affiliation Consultation Flow](docs/slides/35-synthetic-affiliation-consultation-flow.md) |
-| 36 | [Conversational Access and Data Boundaries](docs/slides/36-conversational-access-and-data-boundaries.md) |
-| 37 | [Keep the Client, Workflow and Model Separate](docs/slides/37-client-workflow-model-separation.md) |
-| 38 | [Conversational Client Options](docs/slides/38-conversational-client-options.md) |
-| 39 | [Human Approval across Clients](docs/slides/39-human-approval-across-clients.md) |
-| 40 | [Model Hosting and Data Boundaries](docs/slides/40-model-hosting-and-data-boundaries.md) |
-| 41 | [Conversational Access Delivery](docs/slides/41-conversational-access-delivery.md) |
-
-The retained business case is one common read-only application for three anonymised companies to consult synthetic affiliation records, with search, filters, effective dates and owner-authorised business APIs. RAG supplies the Factory with documentary context. The [selected code-first target](docs/slides/30-langgraph-workflow-in-python.md) uses Python LangGraph, LangChain AWS `ChatBedrockConverse` and official MCP Python SDK connections to three company MCP servers. A local deterministic LangGraph increment now implements the five-role/four-gate sequence; real model-driven Factory work, remote company connections and the [generated application](docs/slides/31-shared-application-and-company-apis.md) remain to be built. That application will use company business APIs directly at runtime.
-
-The three participating companies are distinct from External organisation A/B/C. The latter illustrate selective routing, reference and coverage contracts; they are not additional presumed Factory tenants or an exhaustive six-company requirement. AWS hosts the proposed Factory and Shared Business Platform; external/company system hosting is unverified. The technical flow specifies owner-registered grants, separate service identities, request/response schemas and denied/unavailable outcomes.
+The repository is public. Source availability does not establish that an AWS service has been deployed; deployment status is recorded only after live verification.
 
 ## Source publication evidence
 

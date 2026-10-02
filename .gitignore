@@ -64,6 +64,10 @@ Thumbs.db
 # Local review scratch is not application source or public engineering evidence.
 .codex_review/
 
-# Approved current presentation linked by the engineering portal.
-!docs/presentation/Secloudis_Multi_Agentic_Workflow_on_AWS_v2.11.pptx
-!docs/presentation/Secloudis_Multi_Agentic_Workflow_on_AWS_v2.11.pdf
+# Article drafts, presentation masters and raster exports belong in the
+# separately managed Secloudis article workspace, not in this code repository.
+docs/presentation/
+docs/assets/article/
+docs/assets/cover/
+docs/assets/slides/
+docs/secloudis-article.md
