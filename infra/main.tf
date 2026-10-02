@@ -383,8 +383,8 @@ resource "aws_ecs_express_gateway_service" "app" {
   }
   network_configuration { subnets = [for subnet in aws_subnet.public : subnet.id] }
   scaling_target {
-    min_task_count            = 1
-    max_task_count            = 1
+    min_task_count            = var.service_min_task_count
+    max_task_count            = var.service_max_task_count
     auto_scaling_metric       = "AVERAGE_CPU"
     auto_scaling_target_value = 70
   }
