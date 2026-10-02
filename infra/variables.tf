@@ -109,6 +109,15 @@ variable "service_max_task_count" {
     error_message = "service_max_task_count must be a whole number at least as large as service_min_task_count."
   }
 }
+variable "factory_provider" {
+  description = "Bedrock adapter used by the deployed five-role Factory. aws-langchain is the target path; aws remains the direct Boto3 alternative."
+  type        = string
+  default     = "aws-langchain"
+  validation {
+    condition     = contains(["aws", "aws-langchain"], var.factory_provider)
+    error_message = "factory_provider must be aws or aws-langchain."
+  }
+}
 variable "enable_factory" {
   description = "True exposes the five-role Factory API to Cognito-authenticated users; its roles then call Bedrock with Knowledge Bases context."
   type        = bool

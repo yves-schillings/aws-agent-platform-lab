@@ -13,6 +13,7 @@ github_oidc_subjects                = ["REQUIRED_EXACT_OBSERVED_SUBJECT_FOR_GITH
 create_github_oidc_provider         = false
 existing_github_oidc_provider_arn   = "REQUIRED_EXISTING_OIDC_ARN_OR_ENABLE_CREATION"
 enable_service                     = false
+factory_provider                  = "aws-langchain"
 service_min_task_count             = 2
 service_max_task_count             = 2
 app_image_digest                   = ""

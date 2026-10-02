@@ -25,7 +25,7 @@ locals {
     POC_MAX_OUTPUT_TOKENS     = "2048"
     OTEL_SERVICE_NAME         = var.name_prefix
     FACTORY_ENABLED           = var.enable_factory ? "true" : "false"
-    FACTORY_PROVIDER          = var.enable_factory ? "aws" : "fixtures"
+    FACTORY_PROVIDER          = var.enable_factory ? var.factory_provider : "fixtures"
     LAB_DATA_DIR              = "/app/artifacts/lab-data"
   }
 }
