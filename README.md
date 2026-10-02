@@ -4,15 +4,20 @@ By **Yves Schillings, Secloudis** · [secloudis.com](https://secloudis.com/)
 
 A hands-on AWS agent platform lab using synthetic data, Amazon Bedrock and controlled multi-agent workflows.
 
-The project is intended as an open-source foundation that organisations can inspect, run and adapt. [Open-source reuse and enterprise value](docs/slides/25-open-source-reuse-and-enterprise-value.md) explains the reusable components, required adaptations and measurable outcomes. Licence selection and public release readiness remain to be confirmed; this is not a production-readiness or return-on-investment claim.
+The project is intended as an open-source foundation that organisations can inspect, run and adapt. [Open-source reuse and enterprise value](docs/slides/25-open-source-reuse-and-enterprise-value.md) explains the reusable components, required adaptations and measurable outcomes. Code licensing is Apache 2.0 and diagram licensing is CC BY 4.0. The repository remains private during finalization; Yves will make it public for release.
 
 The delivery sequence is AWS first: deploy and verify this Bedrock implementation. An Azure variant is a separate later phase.
 
 ## Architecture deck and deployment documentation
 
+- [English article for review](docs/secloudis-article.md), with eight article figures.
+- [Complete technical guide](docs/technical-guide.md), including deployment instructions and the detailed cloud extensions.
+- The latest PowerPoint preserves the original slides and adds cleaned article exports without slide numbers or internal references. The numbered engineering pages below document the original 41-slide subset.
+
+
 ![Multi-Agentic Workflow on AWS by Yves Schillings, Secloudis](docs/assets/slides/slide-01.png)
 
-[PowerPoint](docs/presentation/Secloudis_Multi_Agentic_Workflow_on_AWS_v2.11.pptx) · [PDF](docs/presentation/Secloudis_Multi_Agentic_Workflow_on_AWS_v2.11.pdf)
+[PowerPoint](docs/presentation/Secloudis_Multi_Agentic_Workflow_on_AWS_v2.15.pptx) · [PDF](docs/presentation/Secloudis_Multi_Agentic_Workflow_on_AWS_v2.15.pdf)
 
 The **Multi-Agentic Workflow on AWS** deck by Yves Schillings, Secloudis describes the **target Factory**: five worker roles, four human approval gates, isolated candidate execution and controlled release of a separate target application. The implementation status below remains the authority for what currently works. The target diagram is not a claim of a completed AWS deployment.
 
