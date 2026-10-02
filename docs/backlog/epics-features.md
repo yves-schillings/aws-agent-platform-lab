@@ -71,7 +71,7 @@ Test meaningful failures and prepare a repeatable, understandable demonstration.
 | **F04-01 — Cloud State, Evidence and Safe Traces** | P0 | F03-02 | S3 state, artifacts and decisions remain consistent while safe CloudWatch traces explain one successful and one failed run. | Local persistence and instrumentation exist; cloud evidence unverified. |
 | **F04-02 — Risk-Based Live Acceptance Tests** | P0 | F03-04, F04-01, F09-03 | Dated AWS tests record expected and observed results for access boundaries, invalid citations, injection, tool denial, model failures, changed hashes and replayed decisions. | Local negative tests exist; AWS execution pending. |
 | **F04-03 — Recovery, Rollback and Cleanup Rehearsal** | P0 | F03-04, F04-01 | Container replacement preserves approved decisions, interrupted work fails explicitly, and the last verified image/configuration can be restored using the runbook. | Local restart tested; AWS replacement and rollback unverified. |
-| **F04-04 — English and Dutch Demonstration Readiness** | P0 | F01-02, F04-02, F04-03 | English and Dutch demonstrations are rehearsed on frozen evidence, with an explicit simulated fallback and reviewed public documentation aligned with the private planning artifacts; public release readiness also confirms the explicitly selected open-source licence, usable code, installation/demo instructions and reproducible synthetic examples. | Guide and fallback exist; live evaluation, rehearsal, licence selection and public release readiness pending. |
+| **F04-04 — Evaluation and Public Release Readiness** | P0 | F01-02, F04-02, F04-03 | The workflow is evaluated on frozen evidence with English and Dutch synthetic requests and an explicit simulated fallback; public release readiness confirms the selected open-source licence, usable code, installation instructions and reproducible synthetic examples. | Fallback and licence exist; live evaluation and release readiness pending. |
 
 ### EP-05 — Five-Worker Factory and Human Gates
 
@@ -133,7 +133,7 @@ Share one AWS-hosted workflow while isolating each company's resources and enabl
 1. Make the already-defined target application testable: one common application for three anonymised companies to consult synthetic affiliation records, with search, filters, effective dates and generation/approval/deployment tests. Keep existing prototype evidence separate from this target specification.
 2. Qualify account access, models, region and spending controls, then prove the first real Bedrock call.
 3. Deploy one authenticated vertical slice with enforced source access, three real roles, exact-artifact approval and inspectable cloud evidence.
-4. Test success and meaningful failure paths, rehearse recovery, freeze versions and practise the demonstration in English and Dutch.
+4. Test success and meaningful failure paths, rehearse recovery, freeze versions and evaluate English and Dutch synthetic requests.
 5. Expand into the complete Factory through explicit contracts, four human gates, isolated candidate execution, protected validation and exact-version release.
 6. Address production commitments and the later Azure edition using their own acceptance evidence.
 

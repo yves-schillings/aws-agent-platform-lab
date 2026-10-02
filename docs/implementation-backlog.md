@@ -12,8 +12,8 @@ These are issue specifications maintained in the repository. They are not publis
 | LAB-06 | Successful Linux Docker build and offline run; 42 Python dependencies audited with no known findings; completed decisions survive an actual local HTTP process restart | AWS container replacement/S3 persistence and ECR image-scan findings |
 | LAB-07 | Terraform schema/static validation and scoped roles | Reviewed plan, deployment, monitoring and teardown |
 | LAB-08 | Pinned workflow actions, deployment/rollback scripts and contract tests; hosted offline tests, Terraform validation and Docker smoke passed in the linked CI run | Actual OIDC trust and AWS deployment/rollback runs |
-| LAB-09 | Safe structured events, OpenTelemetry instrumentation, persisted decisions and post-restart replay/ownership checks | CloudWatch evidence, S3 persistence and operational fault rehearsal |
-| LAB-10 | English/Dutch explanation guide and synthetic scenarios | Cloud evaluation and presenter rehearsal |
+| LAB-09 | Safe structured events, OpenTelemetry instrumentation, persisted decisions and post-restart replay/ownership checks | CloudWatch evidence, S3 persistence and operational fault exercises |
+| LAB-10 | English and Dutch synthetic scenarios | Cloud evaluation |
 | LAB-11 | Explicit production follow-up boundary | Enterprise decisions and operating evidence |
 
 P0 means necessary for the initial verified AWS demonstration. P1 means a follow-on platform capability to demonstrate if time and account access permit, or otherwise identify honestly as remaining work. A proof of concept does not establish full production readiness. The selected engineering recommendation is recorded in [the proposed architecture](architecture.md); it remains unverified in the target account.
@@ -123,19 +123,18 @@ P0 means necessary for the initial verified AWS demonstration. P1 means a follow
 
 **Acceptance:** one successful and one failed run can be explained from the traces. The runbook lets another operator reproduce the demo and recover from a known failure. A restart does not silently lose or duplicate an approved decision.
 
-## LAB-10: Evaluate the workflow and rehearse in English and Dutch
+## LAB-10: Evaluate the workflow with English and Dutch requests
 
 **Priority:** P0. **Dependencies:** minimum end-to-end deployment.
 
 - Prepare synthetic English and Dutch requests and a small fixed expected-result set.
 - Check source relevance, groundedness, unknown-answer behaviour and language consistency.
-- Include negative demonstrations: hidden source, unsupported citation, injection attempt, denied tool, model failure and changed artifact hash.
-- Rehearse a five-minute demonstration and a deeper architecture explanation.
+- Include negative cases: hidden source, unsupported citation, injection attempt, denied tool, model failure and changed artifact hash.
 - Prepare an offline mock fallback with clearly labelled simulated inference.
 
-**Acceptance:** a dated evidence table records expected/observed results and remaining gaps. Both language journeys are rehearsed. The presenter can explain every component, source permission, model call, controlled action and deployment boundary. Unimplemented requirements remain visibly listed.
+**Acceptance:** a dated evidence table records expected/observed results and remaining gaps. Both language journeys are evaluated. Unimplemented requirements remain visibly listed.
 
-## LAB-11: Harden platform capabilities after the demonstration
+## LAB-11: Harden platform capabilities after the first deployment
 
 **Priority:** P1 after the initial demonstration.
 
