@@ -91,6 +91,24 @@ variable "enable_service" {
   type        = bool
   default     = false
 }
+variable "service_min_task_count" {
+  description = "Minimum number of identical application tasks maintained by ECS Express on Fargate. The production target uses two copies."
+  type        = number
+  default     = 2
+  validation {
+    condition     = var.service_min_task_count >= 2 && floor(var.service_min_task_count) == var.service_min_task_count
+    error_message = "Maintain at least two whole application task copies for the production target."
+  }
+}
+variable "service_max_task_count" {
+  description = "Maximum number of identical application tasks allowed by ECS Express autoscaling."
+  type        = number
+  default     = 2
+  validation {
+    condition     = var.service_max_task_count >= var.service_min_task_count && floor(var.service_max_task_count) == var.service_max_task_count
+    error_message = "service_max_task_count must be a whole number at least as large as service_min_task_count."
+  }
+}
 variable "enable_factory" {
   description = "True exposes the five-role Factory API to Cognito-authenticated users; its roles then call Bedrock with Knowledge Bases context."
   type        = bool
