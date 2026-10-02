@@ -1,0 +1,62 @@
+# Observe GitHub's actual OpenID Connect subject before configuring AWS trust.
+# This job does not authenticate to AWS or create cloud resources.
+name: Observe AWS deployment identity
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  observe:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: aws-lab
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Record only non-secret identity claims
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64, json, os, pathlib, urllib.parse, urllib.request
+          base = os.environ['ACTIONS_ID_TOKEN_REQUEST_URL']
+          parsed = urllib.parse.urlsplit(base)
+          query = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+          query = [(key, value) for key, value in query if key != 'audience']
+          query.append(('audience', 'sts.amazonaws.com'))
+          url = urllib.parse.urlunsplit(parsed._replace(query=urllib.parse.urlencode(query)))
+          request = urllib.request.Request(url, headers={
+              'Authorization': 'Bearer ' + os.environ['ACTIONS_ID_TOKEN_REQUEST_TOKEN']
+          })
+          with urllib.request.urlopen(request, timeout=20) as response:
+              token = json.load(response)['value']
+          encoded = token.split('.')[1]
+          claims = json.loads(base64.urlsafe_b64decode(encoded + '=' * (-len(encoded) % 4)))
+          if claims.get('iss') != 'https://token.actions.githubusercontent.com':
+              raise SystemExit('Unexpected issuer')
+          if claims.get('aud') != 'sts.amazonaws.com':
+              raise SystemExit('Unexpected audience')
+          if claims.get('repository') != os.environ['GITHUB_REPOSITORY']:
+              raise SystemExit('Unexpected repository')
+          if claims.get('environment') != 'aws-lab':
+              raise SystemExit('Unexpected deployment environment')
+          selected = {key: claims[key] for key in (
+              'iss', 'aud', 'sub', 'repository', 'repository_id',
+              'repository_owner_id', 'ref', 'environment'
+          ) if key in claims}
+          # Never log or retain the bearer token, request token or full JWT.
+          text = json.dumps(selected, indent=2)
+          pathlib.Path('oidc-subject.json').write_text(text + '\n', encoding='utf-8')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as summary:
+              summary.write('## Observed AWS trust identity\n\n```json\n' + text + '\n```\n')
+          print(text)
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: aws-oidc-subject
+          path: oidc-subject.json
+          retention-days: 7
