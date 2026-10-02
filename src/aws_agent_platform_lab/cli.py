@@ -11,6 +11,7 @@ from .workflow import run_workflow, decide_run
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Define separate run and exact-artifact approve/reject commands."""
     parser = argparse.ArgumentParser(description="Synthetic multi-agent design prototype")
     commands = parser.add_subparsers(dest="command", required=True)
     run = commands.add_parser("run", help="Run agents and stop before human approval")
@@ -28,6 +29,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Parse a local operator command, execute it, and return a process exit status.
+
+    Selecting a cloud provider is explicit; an approval copies only the
+    reviewed artifact to the fixed local publication path.
+    """
     args = build_parser().parse_args(argv)
     try:
         if args.command == "run":

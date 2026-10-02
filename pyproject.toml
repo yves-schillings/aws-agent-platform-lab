@@ -1,3 +1,5 @@
+# Core CLI stays dependency-light; optional groups describe cloud, web and local Factory capabilities.
+# requirements.txt contains the exact environment used for reproducible verification.
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
@@ -11,6 +13,7 @@ dependencies = []
 
 [project.optional-dependencies]
 aws = ["boto3>=1.35,<2"]
+factory = ["langgraph==1.2.12", "langgraph-checkpoint-sqlite==3.1.1"]
 web = [
   "fastapi>=0.115,<1",
   "uvicorn>=0.34,<1",

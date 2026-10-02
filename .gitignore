@@ -60,3 +60,10 @@ Thumbs.db
 *.pptx
 *.docx
 *.pdf
+
+# Local review scratch is not application source or public engineering evidence.
+.codex_review/
+
+# Approved current presentation linked by the engineering portal.
+!docs/presentation/Secloudis_Multi_Agentic_Workflow_on_AWS_v2.11.pptx
+!docs/presentation/Secloudis_Multi_Agentic_Workflow_on_AWS_v2.11.pdf

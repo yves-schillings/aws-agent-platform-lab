@@ -1,3 +1,4 @@
+# Supply verified account, region and model values; example defaults do not prove availability or authorization.
 variable "aws_region" {
   description = "Explicit region supporting the selected model, KB, S3 Vectors, Cognito and ECS Express."
   type        = string

@@ -16,7 +16,7 @@ These are issue specifications maintained in the repository. They are not publis
 | LAB-10 | English/Dutch explanation guide and synthetic scenarios | Cloud evaluation and presenter rehearsal |
 | LAB-11 | Explicit production follow-up boundary | Enterprise decisions and operating evidence |
 
-P0 means necessary for the intended Monday demonstration. P1 means a follow-on platform capability to demonstrate if time and account access permit, or otherwise identify honestly as remaining work. A proof of concept does not establish full production readiness. The selected engineering recommendation is recorded in [the proposed architecture](architecture.md); it remains unverified in the target account.
+P0 means necessary for the initial verified AWS demonstration. P1 means a follow-on platform capability to demonstrate if time and account access permit, or otherwise identify honestly as remaining work. A proof of concept does not establish full production readiness. The selected engineering recommendation is recorded in [the proposed architecture](architecture.md); it remains unverified in the target account.
 
 ## LAB-01: Establish AWS access and a real Bedrock run
 
@@ -139,4 +139,4 @@ P0 means necessary for the intended Monday demonstration. P1 means a follow-on p
 
 **Priority:** P1 after the initial demonstration.
 
-Confirm production requirements for tenant isolation, availability, scalable orchestration, concurrent decisions, durable execution, evaluation gates, model governance, network isolation, incident response, disaster recovery, data retention and infrastructure lifecycle. Langfuse/Dynatrace trace export, enterprise federation, Kubernetes integration and private-network production topology need separate configuration and tests. Convert the confirmed requirements into separate issues with measurable acceptance criteria. A successful four-day lab is evidence of a learning implementation, not a substitute for these decisions or operating experience.
+Confirm production requirements for tenant isolation, availability, scalable orchestration, concurrent decisions, durable execution, evaluation gates, model governance, network isolation, incident response, disaster recovery, data retention and infrastructure lifecycle. Langfuse/Dynatrace trace export, enterprise federation, Kubernetes integration and private-network production topology need separate configuration and tests. Convert the confirmed requirements into separate issues with measurable acceptance criteria. A successful initial lab is evidence of a learning implementation, not a substitute for these decisions or operating experience.

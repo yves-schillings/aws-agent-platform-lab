@@ -1,3 +1,4 @@
+# Exclude credentials, local state and engineering output from the image build context.
 *
 !Dockerfile
 !requirements.txt

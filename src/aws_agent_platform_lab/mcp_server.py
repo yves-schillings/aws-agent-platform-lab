@@ -9,6 +9,7 @@ REQUIRED = ("request_form", "reference_policy", "review_record")
 
 
 class ChecklistResult(BaseModel):
+    """Typed response from the deterministic, read-only document checklist."""
     model_config = ConfigDict(extra="forbid")
     tenant: str
     present: list[str]

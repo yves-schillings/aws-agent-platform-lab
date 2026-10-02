@@ -37,10 +37,12 @@ class ProviderConfigurationError(ProviderError):
 
 
 def _setting(env: Mapping[str, str], key: str, default: str = "") -> str:
+    """Read a trimmed provider setting from the supplied configuration mapping."""
     return str(env.get(key, default)).strip()
 
 
 def _required(env: Mapping[str, str], key: str) -> str:
+    """Reject missing values and example placeholders before constructing a provider."""
     value = _setting(env, key)
     if not value or value.startswith("<") or "REPLACE_ME" in value:
         raise ProviderConfigurationError(f"Set {key} before using this provider.")
@@ -49,6 +51,7 @@ def _required(env: Mapping[str, str], key: str) -> str:
 
 def _bounded_int(env: Mapping[str, str], key: str, default: int,
                  minimum: int, maximum: int) -> int:
+    """Enforce configured timeout, retry and output limits before remote calls."""
     try:
         value = int(_setting(env, key, str(default)))
     except ValueError:
@@ -61,6 +64,7 @@ def _bounded_int(env: Mapping[str, str], key: str, default: int,
 
 
 def _input(role: str, prompt: str) -> dict[str, Any]:
+    """Validate the synthetic role prompt before a provider can send it remotely."""
     if role not in ROLES:
         raise ProviderError("Unsupported agent role.")
     if not isinstance(prompt, str) or not 0 < len(prompt) <= MAX_PROMPT_CHARS:
@@ -87,6 +91,7 @@ def _input(role: str, prompt: str) -> dict[str, Any]:
 
 
 def _usage(data: Any, input_key: str, output_key: str) -> dict[str, Any]:
+    """Normalize available token counts; unknown cost remains None rather than zero."""
     data = data if isinstance(data, dict) else {}
     def count(key: str) -> int | None:
         value = data.get(key)
@@ -101,9 +106,11 @@ class MockProvider:
     name = "mock"
 
     def __init__(self) -> None:
+        """Initialize per-instance usage accounting for deterministic local responses."""
         self.last_usage: dict[str, Any] = {}
 
     def generate(self, role: str, prompt: str) -> str:
+        """Return a role-specific deterministic JSON proposal with simulated usage."""
         data = _input(role, prompt)
         documents = data["documents"]
         ids = list(dict.fromkeys(item["id"] for item in documents))
@@ -176,6 +183,7 @@ class AwsBedrockProvider:
 
     def __init__(self, *, environ: Mapping[str, str] | None = None,
                  client: Any = None) -> None:
+        """Validate model, region and bounded call settings; defer network access."""
         env = os.environ if environ is None else environ
         self.region = _setting(env, "AWS_REGION") or _required(env, "AWS_DEFAULT_REGION")
         if not re.fullmatch(r"[a-z]{2}(?:-[a-z]+)+-\d", self.region):
@@ -191,6 +199,7 @@ class AwsBedrockProvider:
         self.last_usage: dict[str, Any] = {}
 
     def _connect(self) -> Any:
+        """Create the Bedrock Runtime Boto3 client using the standard credential chain."""
         if self._client is None:
             try:
                 import boto3
@@ -216,6 +225,12 @@ class AwsBedrockProvider:
         return self._client
 
     def generate(self, role: str, prompt: str) -> str:
+        """Send the validated role prompt to Bedrock Converse and return complete text.
+
+        Boto3 is the official Python library for Amazon Web Services. The remote
+        model generates text; this adapter validates transport output and usage.
+        Workflow code separately validates JSON, citations and approval authority.
+        """
         _input(role, prompt)
         self.last_usage = {}
         client = self._connect()
@@ -244,9 +259,11 @@ class AwsBedrockProvider:
 
 
 class _NoRedirects(HTTPRedirectHandler):
+    """Prevent credentials from following an HTTP redirect to another destination."""
     def redirect_request(self, req: Any, fp: Any, code: int, msg: str,
                          headers: Any, newurl: str) -> None:
         # Never forward an API key or bearer token to a redirected destination.
+        """Refuse redirects instead of forwarding an API key or bearer token."""
         return None
 
 
@@ -261,6 +278,7 @@ class AzureOpenAIProvider:
 
     def __init__(self, *, environ: Mapping[str, str] | None = None,
                  opener: Any = None) -> None:
+        """Validate the Azure endpoint, deployment and exactly one authentication mode."""
         env = os.environ if environ is None else environ
         endpoint = _required(env, "AZURE_OPENAI_ENDPOINT").rstrip("/")
         try:
@@ -306,6 +324,11 @@ class AzureOpenAIProvider:
         self.last_usage: dict[str, Any] = {}
 
     def generate(self, role: str, prompt: str) -> str:
+        """Call the configured Azure OpenAI deployment and return complete text.
+
+        This separate HTTPS adapter is retained for contract comparison; it does
+        not prove a live AWS-to-Azure connection or refresh an Entra token.
+        """
         _input(role, prompt)
         self.last_usage = {}
         payload = {

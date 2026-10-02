@@ -46,9 +46,11 @@ The [restart verification](persistence-verification.md) records an actual local 
 
 ## 2. Establish explicit deployment inputs
 
-For a new account, complete [Stage 0: AWS account setup](aws-account-setup.md)
-first. `Secloudis Lab` registration is in progress; activation and operator access
-have not yet been confirmed. Account creation alone does not provision this lab.
+Complete the remaining [Stage 0: AWS account setup](aws-account-setup.md)
+prerequisites first. Account console access was confirmed by a user-provided
+capture on 30 September 2026. Operator access, MFA, the deployment region, budget
+controls, models and application services remain unverified. Console access alone
+does not provision this lab or prove application authentication through Cognito.
 
 ### Connect the operator workstation
 

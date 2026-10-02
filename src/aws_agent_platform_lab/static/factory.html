@@ -1,0 +1,98 @@
+<!doctype html>
+<!-- Local-only inspection harness. All identities, proposals and release gates are simulated. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Multi-Agentic Workflow on AWS | Secloudis</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/factory.css">
+  <script src="/static/factory.js" defer></script>
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="/factory"><span class="brand-mark">S</span><span><strong>SECLOUDIS</strong> / Factory</span></a><span class="badge offline">Local simulation · No model calls</span></header>
+  <main>
+    <section class="intro">
+      <p class="eyebrow">YVES SCHILLINGS · SECLOUDIS</p>
+      <h1>Multi-Agentic Workflow<br><span>on AWS</span></h1>
+      <p class="lede">Describe an application, inspect each proposal and decide whether the workflow can continue.</p>
+    </section>
+    <div class="notice">This increment runs LangGraph on this computer. Five deterministic worker roles produce reviewable proposals. It does not call an AI model, execute generated code or deploy to AWS.</div>
+    <div id="factory-notice" class="notice" role="status" aria-live="polite" hidden></div>
+    <section class="card session">
+      <div><h2>Your company workspace</h2><p>Simulated identities. Run ownership is checked by the server on every request.</p></div>
+      <div class="session-actions"><label for="factory-company">Company<select id="factory-company" disabled></select></label><button id="factory-restore" class="secondary" disabled>Resume saved run</button></div>
+    </section>
+    <section class="card architecture" aria-labelledby="architecture-title">
+      <div class="section-label">WORKFLOW AND HUMAN AUTHORITY</div>
+      <h2 id="architecture-title">Five worker roles, four human approval gates</h2>
+      <ol class="factory-flow">
+        <li><strong>Analyst</strong><span>Scope and requirements</span></li>
+        <li class="human"><strong>G1 Scope</strong><span>You approve the scope</span></li>
+        <li><strong>Architect</strong><span>Design and interfaces</span></li>
+        <li class="human"><strong>G2 Design</strong><span>You approve the design</span></li>
+        <li><strong>Code author</strong><span>Inert candidate proposal</span></li>
+        <li><strong>Tester</strong><span>Proposed checks</span></li>
+        <li><strong>Reviewer</strong><span>Review recommendation</span></li>
+        <li class="human"><strong>G3 Quality</strong><span>You review the evidence</span></li>
+        <li class="human"><strong>G4 Release</strong><span>You approve this proposal</span></li>
+      </ol>
+      <p class="caption">G means Gate, a human approval checkpoint. Approval applies to the exact displayed artifact. G4 finishes this local simulation; it does not deploy an application.</p>
+    </section>
+    <div class="workspace">
+      <section class="card composer">
+        <div class="section-label">01 / INPUT</div><h2>What should the application do?</h2>
+        <form id="factory-form">
+          <label for="factory-request">Application request</label>
+          <textarea id="factory-request" rows="7" minlength="10" maxlength="4000" required>Prepare a shared read-only application for synthetic affiliation records from Company 1, Company 2 and Company 3. Include search, filters, effective dates and company-specific permissions. Each company retains control over its data and API access.</textarea>
+          <p class="caption">The reference scenario is fixed for this increment. Your request is recorded in the proposals; no language model interprets it yet. Document and CSV ingestion are later steps.</p>
+          <label class="check"><input id="factory-synthetic" type="checkbox" required><span>I am using synthetic information only.</span></label>
+          <button id="factory-start" type="submit" disabled>Start a new workflow</button>
+        </form>
+        <div class="scope"><p>Company and project authority come from the server. Mentioning another company in the request does not grant access to its data.</p></div>
+      </section>
+      <section class="card">
+        <div class="section-label">02 / PROGRESS</div>
+        <div class="heading-row"><h2>Your approval checkpoints</h2><span id="factory-status" class="status">Ready</span></div>
+        <ol id="factory-gates" class="agents">
+          <li data-gate="G1"><span class="stage-number">1</span><div><h3>G1 Scope</h3><p>Requirements and data boundaries</p></div><span class="stage-state">Not started</span></li>
+          <li data-gate="G2"><span class="stage-number">2</span><div><h3>G2 Design</h3><p>Architecture and interface proposal</p></div><span class="stage-state">Not started</span></li>
+          <li data-gate="G3"><span class="stage-number">3</span><div><h3>G3 Quality</h3><p>Candidate proposal and fixture checks</p></div><span class="stage-state">Not started</span></li>
+          <li data-gate="G4"><span class="stage-number">4</span><div><h3>G4 Release</h3><p>Exact release proposal</p></div><span class="stage-state">Not started</span></li>
+        </ol>
+        <div id="factory-meta" class="run-meta">Start a workflow, or resume the last run saved for this company.</div>
+      </section>
+    </div>
+    <section id="factory-review" class="card review-card" hidden>
+      <div class="section-label">03 / INSPECT THE RESULT</div><h2 id="factory-review-title">Review the proposal</h2>
+      <p>Read the artifact below before deciding. The worker cannot approve its own output. In this local simulation, you play every approval role.</p>
+      <div id="factory-artifact" class="artifact-fields"></div>
+      <details><summary>Inspect the exact JSON artifact</summary><pre id="factory-json"></pre></details>
+      <p class="caption">SHA-256 identifies the exact reviewed content.</p><code id="factory-hash"></code>
+      <form id="factory-decision-form">
+        <label for="factory-reason">Reason for your decision</label>
+        <textarea id="factory-reason" rows="2" maxlength="1000" required placeholder="Explain why this proposal is acceptable, or what must change."></textarea>
+        <label class="check"><input id="factory-reviewed" type="checkbox" required><span>I have read this exact proposal and its limitations.</span></label>
+        <div class="button-row"><button id="factory-approve" type="submit" value="approve" disabled>Approve this gate</button><button id="factory-reject" type="submit" value="reject" class="secondary" disabled>Reject and stop</button></div>
+      </form>
+    </section>
+    <section id="factory-history" class="card review-card" hidden>
+      <div class="section-label">04 / EVIDENCE</div><h2>Artifacts and decisions</h2>
+      <p class="caption">Each role result and your decisions remain available after a restart. Fixture checks demonstrate orchestration contracts, not generated application quality.</p>
+      <div id="factory-artifacts"></div>
+      <details><summary>Decision history</summary><pre id="factory-decisions"></pre></details>
+      <details><summary>Execution events</summary><pre id="factory-events"></pre></details>
+    </section>
+    <section class="card review-card">
+      <h2>How the complete system will verify AI output</h2>
+      <div class="verification-grid">
+        <div><h3>Model proposal</h3><p>Bedrock will supply worker responses. Schemas, source permissions and budgets will constrain what enters the workflow.</p></div>
+        <div><h3>Independent execution</h3><p>An isolated runner will execute the candidate and protected tests. A generated test report alone will never prove that the code works.</p></div>
+        <div><h3>Human decision</h3><p>Authorised people will inspect requirements, design, test evidence and the release target at their assigned gates.</p></div>
+      </div>
+      <p class="caption">Remaining work: live Bedrock workers, separate approver roles, company MCP connectors, generated application, isolated execution and the protected AWS release pipeline.</p>
+    </section>
+    <footer><span>Yves Schillings · Secloudis</span><a href="/">Open the earlier three-role baseline</a></footer>
+  </main>
+</body>
+</html>

@@ -1,6 +1,9 @@
-# Monday 5 October 2026 afternoon: demonstration and explanation
+# Reusable AWS Workflow Demonstration and Explanation
 
-Use the statements that match the evidence from the run being shown. Until an AWS
+Use this guide to explain a reusable workflow foundation with synthetic examples.
+Follow the [open-source reuse guidance](slides/25-open-source-reuse-and-enterprise-value.md)
+for licence, reproducibility and enterprise adaptation requirements. Use the
+statements that match the evidence from the run being shown. Until an AWS
 run succeeds, say **implemented locally, cloud deployment pending**. A mock answer
 does not establish that Bedrock, cloud identity or the vector index works.
 
@@ -20,7 +23,7 @@ presented before describing a later build as verified.
 
 | Evidence | What it establishes | What it does not establish |
 |---|---|---|
-| Local browser/API and denial tests | Application controls over simulated Alpha/Beta identities and synthetic data | A real Cognito login or enterprise tenant isolation |
+| Local browser/API and denial tests | Application controls over simulated `alpha`/`beta` identities and synthetic data | A real Cognito login or enterprise tenant isolation |
 | Real local MCP stdio exchange | The fixed checklist tool is reached through the protocol | That the same process works in the AWS service |
 | Hosted offline CI and container smoke | The recorded Linux image builds and runs the mock workflow | AWS deployment, live embeddings or model quality |
 | AWS adapters, Terraform and deployment scripts | An implemented deployment candidate with offline checks | Successful account execution or live rollback |
@@ -115,8 +118,8 @@ uitgerold en geverifieerd. Het architectuurschema alleen bewijst dat niet.”
 
 1. Show the GitHub source and the tested commit. If AWS is deployed, also show its
    recorded image digest; otherwise identify the local/offline environment.
-2. Show the application mode. Locally, select the simulated Alpha identity. In
-   AWS, sign in as the real Alpha Cognito user.
+2. Show the application mode. Locally, select the simulated `alpha` identity. In
+   AWS, sign in as an authorised Cognito user mapped to the `alpha` source scope.
 3. Submit: “Prepare a synthetic document checklist. Explain missing evidence, cite
    the available sources and retain a human decision before publication.”
 4. Open a cited source. Explain its document identifier, version and tenant.
@@ -125,13 +128,13 @@ uitgerold en geverifieerd. Het architectuurschema alleen bewijst dat niet.”
 6. Approve that exact artifact. Show its recorded decision and identity mode.
    Publication here marks the stored synthetic artifact as approved; it sends no
    real business instruction to another system.
-7. Select/sign in as Beta and run the same question; inspect only Beta sources.
-   Show a prepared API denial check: Beta's identity requests Alpha's run and
+7. Select/sign in as the `beta` identity and run the same question; inspect only `beta` sources.
+   Show a prepared API denial check: the `beta` identity requests an `alpha` run and
    source endpoints, and receives no artifact or source content. The run lookup
    returns 404. A bare URL in the address bar has no identity header and only
    demonstrates missing authentication. The existing local
    [HTTP isolation test](../tests/test_web.py) is the offline fallback; label it
-   as such. Prepare the live check with real Beta credentials privately before
+   as such. Prepare the live check with authorised credentials mapped to the `beta` scope privately before
    presenting, without displaying or saving access tokens.
 8. Show a trace, measured latency and returned token counts. If price inputs are
    unavailable, say the cost is unknown. Explain the rollback procedure and its
@@ -140,7 +143,7 @@ uitgerold en geverifieerd. Het architectuurschema alleen bewijst dat niet.”
 ## Explain the deployment sequence in plain language
 
 These are operator steps from [deployment.md](deployment.md), not completed work
-or commands to execute during the interview. The infrastructure operator and the
+or commands to execute during a public demonstration. The infrastructure operator and the
 limited GitHub image-deployment role have different permissions.
 
 | Step | English | Nederlands |
@@ -178,7 +181,7 @@ representation used to find related text.
 
 ## Questions to answer without reading
 
-| Interview question | Short English answer | Kort Nederlands antwoord |
+| Reviewer question | Short English answer | Kort Nederlands antwoord |
 |---|---|---|
 | Why does a green health check not prove the demo works? | `/healthz` only proves the process responds. I still need real login, ingestion, inference and denied-access results. | `/healthz` bewijst alleen dat het proces antwoordt. Echte login, verwerking, modelaanroepen en geweigerde toegang moeten apart worden getest. |
 | Who decides which documents a user may read? | The API verifies the token, maps its groups to one server-owned scope, and filters retrieval. The prompt cannot choose that scope. Returned metadata and later reads are checked again. | De API controleert het token, koppelt de groepen aan één toegangsbereik op de server en filtert de zoekopdracht. De prompt kiest die rechten niet. Metadata en latere leesacties worden opnieuw gecontroleerd. |
@@ -189,7 +192,7 @@ representation used to find related text.
 | What exactly does rollback restore? | Only a previously verified image digest. It does not undo IAM, Cognito, source content or stored data. The current alarm neither sends notifications nor triggers rollback. | Alleen een eerder geverifieerde image-digest. IAM, Cognito, broninhoud en opgeslagen gegevens worden niet teruggedraaid. Het huidige alarm verstuurt geen meldingen en start geen rollback. |
 | Why Fargate, and what remains for production? | It keeps this small container demo manageable. One configured task is not high availability. Production needs durable execution, federation, rights synchronization, recovery, operational ownership and measured limits. | Het houdt deze kleine containerdemo beheersbaar. Eén ingestelde taak betekent geen hoge beschikbaarheid. Productie vereist duurzame uitvoering, federatie, synchronisatie van rechten, herstel, operationeel eigenaarschap en gemeten grenzen. |
 
-## Rehearsal to complete before Monday afternoon
+## Rehearsal for a reproducible demonstration
 
 First exercise: in 45 seconds, explain the path from a user request to the exact
 human decision in English, then in Dutch, using the architecture drawing only.

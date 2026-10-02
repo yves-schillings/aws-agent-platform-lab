@@ -30,16 +30,19 @@ LEASE_SECONDS = 1800
 
 
 class ServiceError(RuntimeError):
+    """Safe application error translated to an HTTP or protocol response."""
     def __init__(self, message, status_code=400):
         super().__init__(message)
         self.status_code = status_code
 
 
 class WorkerInterrupted(RuntimeError):
+    """Stop a worker whose deadline or ownership lease is no longer valid."""
     pass
 
 
 def _span(name, run_id):
+    """Create a trace span without capturing exception bodies or prompt content."""
     try:
         from opentelemetry import trace
         return trace.get_tracer("aws-agent-platform-lab").start_as_current_span(
@@ -49,6 +52,7 @@ def _span(name, run_id):
 
 
 def _owner(principal):
+    """Derive a stable internal owner key from the authenticated subject."""
     access_scope(principal)
     if not isinstance(principal.subject, str) or not principal.subject:
         raise ServiceError("Missing authenticated identity", 403)
@@ -56,8 +60,10 @@ def _owner(principal):
 
 
 class LabService:
+    """Coordinate retrieval, bounded agents, evidence storage and exact-version decisions."""
     def __init__(self, store, retriever, provider_factory, *, local=True,
                  tool=call_checklist, hourly_limit=10):
+        """Inject storage, retrieval, provider and tool dependencies with bounded workers."""
         self.store, self.retriever = store, retriever
         self.provider_factory, self.local, self.tool = provider_factory, local, tool
         self.hourly_limit = hourly_limit
@@ -66,6 +72,7 @@ class LabService:
 
     @classmethod
     def from_env(cls):
+        """Choose explicit local fixtures or separately configured AWS service adapters."""
         from .telemetry import configure_telemetry
         configure_telemetry()
         local = os.environ.get("LOCAL_DEMO_MODE", "").lower() == "true"
@@ -81,15 +88,18 @@ class LabService:
             AwsBedrockProvider, local=False)
 
     def close(self):
+        """Wait for submitted work before releasing the worker pool."""
         self.pool.shutdown(wait=True, cancel_futures=False)
 
     @staticmethod
     def _run_key(run_id):
+        """Validate a server-generated identifier and construct its fixed storage key."""
         if not isinstance(run_id, str) or not re.fullmatch(r"[a-f0-9]{32}", run_id):
             raise ServiceError("Run not found", 404)
         return "runs/" + run_id + "/state.json"
 
     def _read(self, principal, run_id):
+        """Authorize both run ownership and retained sources on every read."""
         state, tag = self.store.get(self._run_key(run_id))
         if (not state or state.get("owner") != _owner(principal)
                 or state.get("tenant") != principal.tenant
@@ -101,6 +111,7 @@ class LabService:
         return state, tag
 
     def _public(self, state):
+        """Hide internal ownership fields and label expired active work as interrupted."""
         result = {key: value for key, value in state.items()
                   if key not in {"owner", "tenant", "access_level", "lease"}}
         if result["status"] in ACTIVE and time.time() > state["lease"]:
@@ -109,10 +120,12 @@ class LabService:
         return result
 
     def get_run(self, principal, run_id):
+        """Return the authorized public run state and current evidence."""
         state, _ = self._read(principal, run_id)
         return self._public(state)
 
     def get_source(self, principal, run_id, source_id):
+        """Return one cited source only after rechecking run and document permissions."""
         state, _ = self._read(principal, run_id)
         for doc in state.get("sources", []):
             if doc["id"] == source_id and permitted(principal, doc):
@@ -120,6 +133,11 @@ class LabService:
         raise ServiceError("Source not found", 404)
 
     def start_run(self, principal, request_text, scenario_language="en"):
+        """Claim a per-user lease, persist queued state and submit bounded asynchronous work.
+
+        A failed start releases only its own lease. The two-record setup is
+        compensated explicitly; it is not a cross-object database transaction.
+        """
         if (not isinstance(request_text, str) or not 10 <= len(request_text.strip()) <= 4000
                 or any(ord(c) < 32 and c not in "\n\t\r" for c in request_text)):
             raise ServiceError("Enter a synthetic request between 10 and 4,000 characters")
@@ -175,19 +193,27 @@ class LabService:
         return {"run_id": run_id, "status": "queued"}
 
     def _save(self, state):
+        """Persist a run snapshot with the storage version expected by this worker."""
         _, tag = self.store.get(self._run_key(state["run_id"]))
         self.store.put(self._run_key(state["run_id"]), state, tag)
 
     def _event(self, state, stage, **fields):
+        """Append a safe structured event to logs and the persisted run trace."""
         event = {"run_id": state["run_id"], "stage": stage, "timestamp": time.time(), **fields}
         state["trace"].append(event)
         LOGGER.info(json.dumps(event, allow_nan=False))
         self._save(state)
 
     def _execute(self, principal, request, language, state, lease_key, lease, lease_tag):
+        """Retrieve scoped sources, call the fixed tool, run agents and stop for review.
+
+        Lease checks surround external boundaries. Only bounded errors and usage
+        metadata are retained; approval remains a separate caller operation.
+        """
         run_id = state["run_id"]
         started = time.perf_counter()
         def ensure_lease():
+            """Stop before further work when the lease expires or belongs to another run."""
             if time.time() >= state["lease"]:
                 raise WorkerInterrupted("Workflow deadline reached")
             current, _ = self.store.get(lease_key)
@@ -215,8 +241,10 @@ class LabService:
                 service = self
 
                 class TracedProvider:
+                    """Wrap one provider with lease checks, timing and safe per-role telemetry."""
                     last_usage = {}
                     def generate(self, role, prompt):
+                        """Call the underlying model once and record available usage without prompt text."""
                         ensure_lease()
                         if time.time() > state["lease"] - 120:
                             raise WorkerInterrupted("Insufficient time remains for a bounded model call")
@@ -276,6 +304,11 @@ class LabService:
             self.slots.release()
 
     def decide_run(self, principal, run_id, artifact_hash, decision):
+        """Authorize the caller and bind approve/reject to the exact artifact hash.
+
+        The decision and publication flag are written in one conditional record,
+        so competing or replayed decisions cannot both succeed.
+        """
         if decision not in {"approve", "reject"}:
             raise ServiceError("Decision must be approve or reject")
         state, tag = self._read(principal, run_id)

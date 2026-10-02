@@ -17,10 +17,12 @@ from typing import Any
 
 
 class DeploymentError(ValueError):
+    """Controlled deployment failure safe to present without provider response bodies."""
     pass
 
 
 def validate_target(account: str, region: str, service_arn: str, image_uri: str) -> str:
+    """Require a matching account, region, ECS service and immutable ECR image digest."""
     if not re.fullmatch(r"\d{12}", account):
         raise DeploymentError("An explicit 12-digit account ID is required.")
     if not re.fullmatch(r"[a-z]{2}-[a-z]+-\d+", region):
@@ -36,6 +38,7 @@ def validate_target(account: str, region: str, service_arn: str, image_uri: str)
 
 
 def stable_configuration(service: dict[str, Any]) -> dict[str, Any]:
+    """Read one active cloud configuration and reject unsafe local-demo exposure."""
     if service.get("status", {}).get("statusCode") != "ACTIVE":
         raise DeploymentError("The Express service is not ACTIVE; inspect its deployment before retrying.")
     configurations = service.get("activeConfigurations", [])
@@ -52,6 +55,7 @@ def stable_configuration(service: dict[str, Any]) -> dict[str, Any]:
 
 
 def write_receipt(path: Path, receipt: dict[str, Any], *, new: bool = False) -> None:
+    """Write a bounded deployment receipt without embedding container secrets."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("x" if new else "w", encoding="utf-8") as handle:
         json.dump(receipt, handle, indent=2, sort_keys=True)
@@ -62,6 +66,12 @@ def deploy(*, ecs: Any, ecr: Any, sts: Any, account: str, region: str,
            service_arn: str, image_uri: str, output: Path,
            expected_current_image: str | None = None, timeout: int = 1800,
            poll_seconds: float = 15, clock=time.monotonic, sleep=time.sleep) -> dict[str, Any]:
+    """Promote one existing Express service to an explicit image digest and observe it.
+
+    Account, registry and current-version checks precede the update. Preserve
+    configuration and secret references. Service health is not end-to-end
+    authentication, retrieval or model-inference proof.
+    """
     repository = validate_target(account, region, service_arn, image_uri)
     if output.exists():
         raise DeploymentError("The receipt already exists; choose a new output path.")
@@ -121,6 +131,7 @@ def deploy(*, ecs: Any, ecr: Any, sts: Any, account: str, region: str,
 
 
 def parser() -> argparse.ArgumentParser:
+    """Require an exact deployment target and an explicit execution switch."""
     result = argparse.ArgumentParser(description=__doc__)
     result.add_argument("--expected-account-id", required=True)
     result.add_argument("--region", required=True)
@@ -134,6 +145,7 @@ def parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Validate offline by default; create AWS clients only after --execute."""
     args = parser().parse_args(argv)
     try:
         validate_target(args.expected_account_id, args.region, args.service_arn, args.image_uri)
