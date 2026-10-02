@@ -4,7 +4,7 @@ By **Yves Schillings, Secloudis** · [secloudis.com](https://secloudis.com/)
 
 A hands-on AWS agent platform lab using synthetic data, Amazon Bedrock and controlled multi-agent workflows.
 
-The project is intended as an open-source foundation that organisations can inspect, run and adapt. [Open-source reuse and enterprise value](docs/slides/25-open-source-reuse-and-enterprise-value.md) explains the reusable components, required adaptations and measurable outcomes. Code licensing is Apache 2.0 and diagram licensing is CC BY 4.0. The repository remains private during finalization; Yves will make it public for release.
+The project is an open-source foundation that organisations can inspect, run and adapt. Code licensing is Apache 2.0. The repository is public.
 
 The delivery sequence is AWS first: deploy and verify this Bedrock implementation. An Azure variant is a separate later phase.
 
