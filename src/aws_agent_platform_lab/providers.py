@@ -294,6 +294,83 @@ class AwsBedrockProvider:
             raise ProviderError("AWS returned an unexpected response structure.") from None
 
 
+class LangChainBedrockProvider(AwsBedrockProvider):
+    """Bedrock Converse through LangChain's ChatBedrockConverse adapter.
+
+    This is an opt-in alternative to the direct Boto3 adapter. It uses the
+    same bounded AWS settings while validation remains outside the provider.
+    """
+
+    name = "aws-langchain"
+
+    def __init__(self, *, environ: Mapping[str, str] | None = None,
+                 model: Any = None) -> None:
+        """Validate AWS settings and defer the optional LangChain import."""
+        super().__init__(environ=environ)
+        self._model = model
+
+    def _connect_model(self) -> Any:
+        """Create the LangChain model only when a real inference is requested."""
+        if self._model is None:
+            try:
+                from langchain_aws import ChatBedrockConverse
+            except ImportError:
+                raise ProviderConfigurationError(
+                    "Install the optional AWS dependency: pip install -e '.[aws]'."
+                ) from None
+            try:
+                self._model = ChatBedrockConverse(
+                    model=self.model_id,
+                    region_name=self.region,
+                    credentials_profile_name=self.profile,
+                    max_tokens=self.max_tokens,
+                    timeout=self.timeout,
+                    max_retries=self.attempts,
+                )
+            except Exception:
+                raise ProviderConfigurationError(
+                    "LangChain Bedrock setup failed. Check the selected profile, region and credentials."
+                ) from None
+        return self._model
+
+    def generate(self, role: str, prompt: str) -> str:
+        """Call Bedrock through LangChain and return bounded text and token usage."""
+        _input(role, prompt)
+        self.last_usage = {}
+        model = self._connect_model()
+        try:
+            from langchain_core.messages import HumanMessage, SystemMessage
+            response = model.invoke([
+                SystemMessage(content=SYSTEM_MESSAGE), HumanMessage(content=prompt)
+            ])
+        except ProviderError:
+            raise
+        except Exception:
+            raise ProviderError(
+                "AWS inference failed. Check authentication, model access, quotas and connectivity."
+            ) from None
+        try:
+            content = getattr(response, "content", None)
+            if isinstance(content, str):
+                text = content
+            elif isinstance(content, list):
+                text = "".join(
+                    item if isinstance(item, str) else item.get("text", "")
+                    for item in content if isinstance(item, (str, dict))
+                )
+            else:
+                text = ""
+            if not text.strip() or len(text.encode("utf-8")) > MAX_RESPONSE_BYTES:
+                raise ProviderError("AWS answer is empty or exceeds the response size limit.")
+            self.last_usage = _usage(
+                getattr(response, "usage_metadata", None), "input_tokens", "output_tokens"
+            )
+            return text
+        except ProviderError:
+            raise
+        except (TypeError, AttributeError):
+            raise ProviderError("AWS returned an unexpected response structure.") from None
+
 class _NoRedirects(HTTPRedirectHandler):
     """Prevent credentials from following an HTTP redirect to another destination."""
     def redirect_request(self, req: Any, fp: Any, code: int, msg: str,
@@ -412,11 +489,11 @@ class AzureOpenAIProvider:
             raise ProviderError("Azure returned an unexpected response structure.") from None
 
 
-def create_provider(name: str) -> MockProvider | AwsBedrockProvider | AzureOpenAIProvider:
+def create_provider(name: str) -> MockProvider | AwsBedrockProvider | LangChainBedrockProvider | AzureOpenAIProvider:
     """Select an adapter. Choosing aws/azure explicitly enables cloud inference."""
-    factories = {"mock": MockProvider, "aws": AwsBedrockProvider, "azure": AzureOpenAIProvider}
+    factories = {"mock": MockProvider, "aws": AwsBedrockProvider, "aws-langchain": LangChainBedrockProvider, "aws_langchain": LangChainBedrockProvider, "azure": AzureOpenAIProvider}
     try:
         factory = factories[name]
     except (KeyError, TypeError):
-        raise ProviderConfigurationError("Provider must be mock, aws or azure.") from None
+        raise ProviderConfigurationError("Provider must be mock, aws, aws-langchain or azure.") from None
     return factory()

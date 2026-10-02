@@ -20,6 +20,7 @@ jmespath==1.1.0
 jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
 mcp==1.30.0
+numpy==2.5.3
 opentelemetry-api==1.45.0
 opentelemetry-sdk==1.45.0
 opentelemetry-semantic-conventions==0.66b0
@@ -50,6 +51,7 @@ httpcore2==2.13.1
 httpx2==2.13.1
 jsonpatch==1.33
 jsonpointer==3.1.1
+langchain-aws==1.8.0
 langchain-core==1.6.6
 langchain-protocol==0.0.19
 langgraph==1.2.12

@@ -12,7 +12,7 @@ requires-python = ">=3.11"
 dependencies = []
 
 [project.optional-dependencies]
-aws = ["boto3>=1.35,<2"]
+aws = ["boto3>=1.35,<2", "langchain-aws>=1.8,<2"]
 factory = ["langgraph==1.2.12", "langgraph-checkpoint-sqlite==3.1.1"]
 web = [
   "fastapi>=0.115,<1",
