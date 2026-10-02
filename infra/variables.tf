@@ -91,6 +91,11 @@ variable "enable_service" {
   type        = bool
   default     = false
 }
+variable "enable_factory" {
+  description = "True exposes the five-role Factory API to Cognito-authenticated users; its roles then call Bedrock with Knowledge Bases context."
+  type        = bool
+  default     = false
+}
 variable "app_image_digest" {
   description = "Exact image digest in the created ECR repository, never a mutable tag."
   type        = string

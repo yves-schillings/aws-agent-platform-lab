@@ -16,7 +16,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
-ROLES = frozenset({"analyst", "designer", "reviewer"})
+ROLES = frozenset({"analyst", "designer", "reviewer", "architect", "code_author", "tester"})
 MAX_PROMPT_CHARS = 200_000
 MAX_RESPONSE_BYTES = 2_000_000
 SYSTEM_MESSAGE = (
@@ -142,6 +142,42 @@ class MockProvider:
                 ],
                 "citations": ids,
             }
+        elif role == "architect":
+            result = {
+                "components": [
+                    {"name": "Consultation API", "responsibility": "Read-only search of synthetic affiliation records.", "hosting": "Python container on ECS/Fargate"},
+                    {"name": "Authorization check", "responsibility": "Resolve company and project rights before any read.", "hosting": "Same Python container"},
+                ],
+                "interfaces": ["GET /affiliations with search, filters and an as-of date"],
+                "controls": ["Every read is filtered by the verified company scope.",
+                             "A human release owner approves the exact candidate before deployment."],
+                "citations": ids,
+            }
+        elif role == "code_author":
+            result = {
+                "files": [{"path": "proposed_app/affiliations.py",
+                           "purpose": "Read-only affiliation search with effective dates.",
+                           "content": "# Proposed source text only; the Factory never executes it.\n"
+                                      "def search(scope, query, as_of):\n    raise NotImplementedError\n"}],
+                "notes": ["The candidate is inert text until a separate sandbox builds and tests it."],
+                "citations": ids,
+            }
+        elif role == "tester":
+            result = {
+                "test_cases": [
+                    {"case": "A user reads records inside the permitted company scope", "expected": "Allowed fields only"},
+                    {"case": "A user requests another company's record without a grant", "expected": "403 before any data access"},
+                ],
+                "citations": ids,
+            }
+        elif "candidate" in data:
+            candidate = data.get("candidate")
+            issues = []
+            if not isinstance(candidate, dict) or not candidate.get("files"):
+                issues.append("The candidate must contain proposed files.")
+            if not isinstance(candidate, dict) or not candidate.get("test_cases"):
+                issues.append("The candidate must contain proposed test cases.")
+            result = {"approved": not issues, "issues": issues, "citations": ids}
         else:
             draft = data.get("draft")
             issues = []

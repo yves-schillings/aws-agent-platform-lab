@@ -1,0 +1,247 @@
+"""Model-backed Factory: validated answers, permitted sources, failures and gates."""
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+from aws_agent_platform_lab.auth import Principal
+from aws_agent_platform_lab.factory import (FIXTURES, GATES, MODEL_LIMITATIONS, FactoryService,
+                                            service_from_environment, validate_model_output)
+from aws_agent_platform_lab.models import ValidationError
+from aws_agent_platform_lab.providers import MockProvider
+from aws_agent_platform_lab.services import ServiceError
+
+REQUEST = "Prepare the shared read-only synthetic affiliation consultation application."
+
+
+def principal(tenant="alpha"):
+    return Principal("local" + tenant, ("demo-" + tenant,), tenant, "internal", True)
+
+
+class RecordingProvider(MockProvider):
+    """Mock model that records each role prompt it receives."""
+    def __init__(self):
+        super().__init__()
+        self.prompts = []
+
+    def generate(self, role, prompt):
+        self.prompts.append((role, json.loads(prompt)))
+        return super().generate(role, prompt)
+
+
+class ScriptedProvider:
+    """Return a fixed answer, or raise, for one role; delegate the others to the mock."""
+    name = "scripted"
+
+    def __init__(self, role, answer=None, error=None):
+        self.role, self.answer, self.error = role, answer, error
+        self.mock = MockProvider()
+        self.last_usage = {}
+
+    def generate(self, role, prompt):
+        if role == self.role:
+            if self.error:
+                raise self.error
+            return self.answer
+        return self.mock.generate(role, prompt)
+
+
+class ModelBackedFactoryTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+
+    def service(self, provider):
+        service = FactoryService(self.root / "factory", provider=provider)
+        self.addCleanup(service.close)
+        return service
+
+    def decide(self, service, state, user=None):
+        pending = state["pending_gate"]
+        return service.decide_run(user or principal(), state["run_id"], pending["gate"],
+                                  pending["artifact_hash"], "approve", "Reviewed the model proposal.")
+
+    def test_five_roles_call_the_model_and_cite_only_permitted_sources(self):
+        provider = RecordingProvider()
+        service = self.service(provider)
+        state = service.start_run(principal(), REQUEST)
+        self.assertTrue(state["model_backed"])
+        self.assertFalse(state["simulated"])
+        self.assertTrue(state["identity_simulated"])
+        self.assertEqual(state["provider"], "mock")
+        self.assertEqual(state["limitations"], MODEL_LIMITATIONS)
+        source_ids = {s["id"] for s in state["sources"]}
+        self.assertTrue(source_ids)
+        self.assertTrue(all(i.startswith("ALPHA-") for i in source_ids))
+        for gate in GATES:
+            self.assertEqual(state["pending_gate"]["gate"], gate)
+            self.assertFalse(state["pending_gate"]["artifact"]["simulated"])
+            state = self.decide(service, state)
+        self.assertEqual(state["status"], "release_ready")
+        self.assertEqual([r for r, _ in provider.prompts],
+                         ["analyst", "architect", "code_author", "tester", "reviewer"])
+        for role, artifact in state["artifacts"].items():
+            self.assertTrue(artifact["model_backed"], role)
+            self.assertFalse(artifact["executed"], role)
+            self.assertTrue(set(artifact["citations"]) <= source_ids, role)
+        reviewer_prompt = provider.prompts[-1][1]
+        self.assertIn("candidate", reviewer_prompt)
+        self.assertTrue(reviewer_prompt["candidate"]["files"])
+        self.assertIn("untrusted data", reviewer_prompt["instructions"])
+
+    def test_each_company_sees_only_its_own_documents(self):
+        provider = RecordingProvider()
+        service = self.service(provider)
+        state = service.start_run(principal("beta"), REQUEST)
+        self.assertTrue(state["sources"])
+        self.assertTrue(all(s["id"].startswith("BETA-") for s in state["sources"]))
+        documents = provider.prompts[0][1]["documents"]
+        self.assertTrue(all(d["id"].startswith("BETA-") for d in documents))
+
+    def test_company_without_permitted_documents_is_refused_before_any_model_call(self):
+        provider = RecordingProvider()
+        service = self.service(provider)
+        with self.assertRaises(ServiceError) as error:
+            service.start_run(principal("gamma"), REQUEST)
+        self.assertEqual(error.exception.status_code, 422)
+        self.assertEqual(provider.prompts, [])
+
+    def test_invalid_json_ends_the_run_without_reaching_a_gate(self):
+        service = self.service(ScriptedProvider("analyst", answer="not json"))
+        state = service.start_run(principal(), REQUEST)
+        self.assertEqual(state["status"], "failed")
+        self.assertIsNone(state["pending_gate"])
+        self.assertEqual(state["artifacts"]["analyst"]["error_type"], "ValidationError")
+
+    def test_citation_outside_the_supplied_documents_is_rejected(self):
+        answer = json.dumps({"summary": "S", "requirements": ["R"], "citations": ["BETA-POLICY"]})
+        service = self.service(ScriptedProvider("analyst", answer=answer))
+        state = service.start_run(principal(), REQUEST)
+        self.assertEqual(state["status"], "failed")
+        self.assertIsNone(state["pending_gate"])
+
+    def test_provider_error_records_only_its_type(self):
+        error = RuntimeError("https://secret-endpoint.example/with?token=abc")
+        service = self.service(ScriptedProvider("architect", error=error))
+        state = service.start_run(principal(), REQUEST)
+        state = self.decide(service, state)
+        self.assertEqual(state["status"], "failed")
+        self.assertEqual(state["artifacts"]["architect"]["error_type"], "RuntimeError")
+        self.assertNotIn("secret-endpoint", json.dumps(state))
+
+    def test_proposed_paths_must_stay_inside_the_candidate(self):
+        for path in ("../outside.py", "/etc/passwd", "app/../../x.py", "C:/Windows/x.py"):
+            data = {"files": [{"path": path, "purpose": "p", "content": "c"}],
+                    "notes": [], "citations": ["ALPHA-POLICY"]}
+            with self.assertRaises(ValidationError, msg=path):
+                validate_model_output("code_author", data, {"ALPHA-POLICY"})
+
+    def test_an_approval_cannot_hide_unresolved_issues(self):
+        data = {"approved": True, "issues": ["Missing authorization test."], "citations": ["ALPHA-OPS"]}
+        with self.assertRaises(ValidationError):
+            validate_model_output("reviewer", data, {"ALPHA-OPS"})
+
+    def test_environment_selects_fixtures_by_default_and_mock_on_request(self):
+        fixtures = service_from_environment(self.root / "a", {})
+        self.addCleanup(fixtures.close)
+        self.assertEqual(fixtures._provider_name, FIXTURES)
+        mock = service_from_environment(self.root / "b", {"FACTORY_PROVIDER": "mock"})
+        self.addCleanup(mock.close)
+        self.assertEqual(mock._provider_name, "mock")
+        with self.assertRaises(Exception):
+            service_from_environment(self.root / "c", {"FACTORY_PROVIDER": "unknown"})
+
+
+CLOUD = {
+    "AWS_REGION": "eu-west-1", "COGNITO_USER_POOL_ID": "eu-west-1_testPool",
+    "COGNITO_CLIENT_ID": "testclient123",
+    "COGNITO_ISSUER": "https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_testPool",
+    "COGNITO_DOMAIN": "https://synthetic.auth.eu-west-1.amazoncognito.com",
+    "COGNITO_REDIRECT_URI": "https://lab.example.org/auth/callback",
+    "ACCESS_POLICY_JSON": json.dumps({"demo-alpha": {"tenant": "alpha", "access_level": "internal"},
+                                      "demo-beta": {"tenant": "beta", "access_level": "internal"}}),
+}
+TOKENS = {"alpha-token": ("user-alpha", "alpha"), "beta-token": ("user-beta", "beta")}
+
+
+class FakeVerifier:
+    """Stand-in for Cognito: maps fixed test tokens to verified, non-simulated principals."""
+    def verify(self, token):
+        from aws_agent_platform_lab.auth import AuthError
+        if token not in TOKENS:
+            raise AuthError("Invalid synthetic test token.")
+        subject, tenant = TOKENS[token]
+        return Principal(subject, ("demo-" + tenant,), tenant, "internal")
+
+
+class CognitoFactoryWebTests(unittest.TestCase):
+    def setUp(self):
+        from fastapi.testclient import TestClient
+        from aws_agent_platform_lab.web import create_app
+        self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        self.factory = FactoryService(self.root / "factory", provider=MockProvider(),
+                                      verified_identities=True)
+        self.addCleanup(self.factory.close)
+        self.make = lambda env: self.enterContext(TestClient(create_app(
+            environ=env, verifier=FakeVerifier(), factory_service=self.factory)))
+        self.client = self.make({**CLOUD, "FACTORY_ENABLED": "true"})
+
+    @staticmethod
+    def bearer(token):
+        return {"Authorization": "Bearer " + token}
+
+    def test_verified_user_runs_the_model_backed_factory_through_all_gates(self):
+        result = self.client.post("/api/factory/runs", headers=self.bearer("alpha-token"),
+                                  json={"request_text": REQUEST, "synthetic": True})
+        self.assertEqual(result.status_code, 201, result.text)
+        state = result.json()
+        self.assertFalse(state["identity_simulated"])
+        self.assertTrue(state["model_backed"])
+        self.assertTrue(any("Cognito-authenticated run owner" in item for item in state["limitations"]))
+        url = f"/api/factory/runs/{state['run_id']}/decision"
+        for gate in GATES:
+            pending = state["pending_gate"]
+            result = self.client.post(url, headers=self.bearer("alpha-token"), json={
+                "gate": gate, "artifact_hash": pending["artifact_hash"],
+                "decision": "approve", "reason": "Reviewed by the authenticated owner."})
+            self.assertEqual(result.status_code, 200, result.text)
+            state = result.json()
+        self.assertEqual(state["status"], "release_ready")
+        self.assertTrue(all(d["identity_verified"] and not d["simulated"] for d in state["decisions"]))
+
+    def test_missing_or_invalid_token_is_refused(self):
+        body = {"request_text": REQUEST, "synthetic": True}
+        self.assertEqual(self.client.post("/api/factory/runs", json=body).status_code, 401)
+        self.assertEqual(self.client.post("/api/factory/runs", headers=self.bearer("forged"),
+                                          json=body).status_code, 401)
+        self.assertEqual(self.client.post("/api/factory/runs", headers={"X-Demo-User": "localalpha"},
+                                          json=body).status_code, 401)
+
+    def test_another_verified_user_cannot_read_or_decide_the_run(self):
+        state = self.client.post("/api/factory/runs", headers=self.bearer("alpha-token"),
+                                 json={"request_text": REQUEST, "synthetic": True}).json()
+        run = f"/api/factory/runs/{state['run_id']}"
+        self.assertEqual(self.client.get(run, headers=self.bearer("beta-token")).status_code, 404)
+        pending = state["pending_gate"]
+        decision = self.client.post(run + "/decision", headers=self.bearer("beta-token"), json={
+            "gate": pending["gate"], "artifact_hash": pending["artifact_hash"],
+            "decision": "approve", "reason": "Attempted by another company."})
+        self.assertEqual(decision.status_code, 404)
+
+    def test_local_factory_refuses_a_verified_looking_principal(self):
+        local = FactoryService(self.root / "local", provider=MockProvider())
+        self.addCleanup(local.close)
+        with self.assertRaises(ServiceError) as error:
+            local.start_run(Principal("user-alpha", ("demo-alpha",), "alpha", "internal"), REQUEST)
+        self.assertEqual(error.exception.status_code, 403)
+
+    def test_factory_routes_do_not_exist_in_aws_mode_unless_enabled(self):
+        client = self.make(dict(CLOUD))
+        result = client.post("/api/factory/runs", headers=self.bearer("alpha-token"),
+                             json={"request_text": REQUEST, "synthetic": True})
+        self.assertEqual(result.status_code, 404)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -22,7 +22,7 @@ from mcp.types import ToolAnnotations
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from .auth import Principal
-from .factory import COMPANIES, GATES, LIMITATIONS, FactoryService
+from .factory import COMPANIES, GATES, LIMITATIONS, FactoryService, service_from_environment
 from .services import ServiceError
 
 
@@ -220,7 +220,7 @@ def create_server(environ: Mapping[str, str] | None = None):
     async def lifespan(server):
         """Own one Factory service for the protocol session and close its database."""
         with tracing_context(enabled=False):
-            service = FactoryService(root)
+            service = service_from_environment(root, env)
             try:
                 yield {"service": service}
             finally:

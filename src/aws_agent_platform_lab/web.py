@@ -104,6 +104,7 @@ def create_app(*, service: Any = None, environ: Mapping[str, str] | None = None,
     app.state.service = service
     app.state.local = local
     app.state.factory_service = factory_service
+    factory_enabled = str(env.get("FACTORY_ENABLED", "false")).strip().lower() == "true"
     factory_lock = threading.Lock()
     factory_identities = {
         **LOCAL_IDENTITIES,
@@ -186,9 +187,14 @@ def create_app(*, service: Any = None, environ: Mapping[str, str] | None = None,
 
     def factory_principal(request: Request) -> Principal:
         # Fixture identities never reach the Cognito/AWS path, even when injected in tests.
-        """Allow only supported local fixture identities; deny Factory routes in AWS mode."""
+        """Resolve a local fixture, or in AWS mode a verified Cognito identity when enabled.
+
+        AWS mode requires FACTORY_ENABLED=true; otherwise Factory routes do not exist.
+        """
         if not local:
-            raise AuthError("The Factory increment is available in local demonstration mode only.", 404)
+            if not factory_enabled:
+                raise AuthError("The Factory increment is available in local demonstration mode only.", 404)
+            return current_principal(request)
         chosen = request.headers.get("X-Demo-User", "")
         if chosen not in factory_identities:
             raise AuthError("Choose a simulated Company 1, Company 2 or Company 3 identity.")
@@ -200,9 +206,9 @@ def create_app(*, service: Any = None, environ: Mapping[str, str] | None = None,
         try:
             with factory_lock:
                 if app.state.factory_service is None:
-                    from .factory import FactoryService
+                    from .factory import service_from_environment
                     root = Path(env.get("LAB_DATA_DIR", ".lab-data")) / "factory"
-                    app.state.factory_service = FactoryService(root)
+                    app.state.factory_service = service_from_environment(root, env)
             return getattr(app.state.factory_service, method)(*args)
         except ServiceError as exc:
             return JSONResponse({"detail": str(exc)}, status_code=exc.status_code)
