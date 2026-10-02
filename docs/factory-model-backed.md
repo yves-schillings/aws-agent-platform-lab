@@ -1,0 +1,39 @@
+# Model-backed Factory and Cognito access (MVP increment)
+
+This increment turns the five-role Factory from fixed examples into model calls, and lets Cognito-authenticated users reach it on AWS. Five-company federation, the candidate sandbox, the generated application and remote MCP stay out of scope.
+
+## Modes
+
+| Setting | Effect |
+| --- | --- |
+| `FACTORY_PROVIDER` unset or `fixtures` | Unchanged behaviour: the five roles return fixed examples. |
+| `FACTORY_PROVIDER=mock` | Roles call the local mock model: offline end-to-end checks. |
+| `FACTORY_PROVIDER=aws` | Roles call Bedrock Converse through `AwsBedrockProvider`; with `BEDROCK_KNOWLEDGE_BASE_ID` set, documents come from Bedrock Knowledge Bases. |
+| `FACTORY_ENABLED=true` (AWS mode) | Exposes `/api/factory/*` to Cognito-verified users. Without it the routes return 404. |
+
+Terraform: `enable_factory = true` sets `FACTORY_ENABLED=true`, `FACTORY_PROVIDER=aws` and `LAB_DATA_DIR=/app/artifacts/lab-data` (the container's writable directory). Default is `false`.
+
+## How one role call works
+
+1. `start_run` resolves the caller's company scope from the verified identity and retrieves at most five permitted documents. A caller without permitted documents gets 422 before any model call.
+2. Each LangGraph role node builds a JSON prompt: role task, rules, the role's `response_schema`, the request, the permitted documents and the earlier roles' proposals (the Reviewer also receives the candidate files and test cases).
+3. The rules state that request, document and earlier-role text is untrusted data, that only supplied document IDs may be cited, and that nothing proposed is executed.
+4. `validate_model_output` keeps an answer only if its fields match the role schema exactly, its citations name supplied documents, proposed file paths stay inside the candidate, and a reviewer approval leaves no unresolved issues.
+5. A provider error or invalid answer sets the run to `failed` without reaching a gate; only the error type is stored.
+6. Validated proposals stay inert data. The Factory never builds, executes or deploys proposed code.
+
+## Identities
+
+- Local mode accepts only the three fixture identities; a principal marked as verified is refused (403).
+- AWS mode (`verified_identities=True`, set by `service_from_environment` when `LOCAL_DEMO_MODE` is not `true`) accepts Cognito-verified principals whose token groups map to a known company. Gate decisions record `identity_verified: true`.
+- Gates are decided by the authenticated run owner. Separate gate-approver roles are not implemented.
+
+## Known MVP limits
+
+- Checkpoints use SQLite on the task's own disk: a replaced ECS task loses waiting runs. DynamoDB checkpoints are not implemented.
+- The `/factory` browser page remains local-only; on AWS the Factory is reached through its API with a bearer token.
+- The LangChain `ChatBedrockConverse` adapter is not added yet (it needs the `langchain-aws` dependency); the Bedrock call uses Boto3 Converse.
+
+## Tests
+
+`tests/test_factory_model.py` covers: five model-backed roles through four gates, per-company document isolation, refusal before any model call, invalid JSON, out-of-scope citations, sanitized provider errors, unsafe file paths, reviewer approvals with open issues, environment selection, and the Cognito HTTP path (valid token, missing or forged token, cross-user isolation, routes disabled unless enabled).

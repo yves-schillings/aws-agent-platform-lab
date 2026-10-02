@@ -24,6 +24,9 @@ locals {
     POC_MAX_ATTEMPTS          = "2"
     POC_MAX_OUTPUT_TOKENS     = "2048"
     OTEL_SERVICE_NAME         = var.name_prefix
+    FACTORY_ENABLED           = var.enable_factory ? "true" : "false"
+    FACTORY_PROVIDER          = var.enable_factory ? "aws" : "fixtures"
+    LAB_DATA_DIR              = "/app/artifacts/lab-data"
   }
 }
 
@@ -42,7 +45,7 @@ resource "terraform_data" "deployment_gate" {
       error_message = "The existing GitHub OIDC provider must belong to the selected account."
     }
     precondition {
-      condition     = length(setintersection(toset(keys(var.runtime_secret_arns)), toset(["LOCAL_DEMO_MODE", "PORT", "AWS_REGION", "BEDROCK_MODEL_ID", "BEDROCK_KNOWLEDGE_BASE_ID", "COGNITO_USER_POOL_ID", "COGNITO_CLIENT_ID", "COGNITO_ISSUER", "COGNITO_DOMAIN", "COGNITO_REDIRECT_URI", "ACCESS_POLICY_JSON", "ARTIFACT_BUCKET", "POC_TIMEOUT_SECONDS", "POC_MAX_ATTEMPTS", "POC_MAX_OUTPUT_TOKENS", "OTEL_SERVICE_NAME"]))) == 0
+      condition     = length(setintersection(toset(keys(var.runtime_secret_arns)), toset(["LOCAL_DEMO_MODE", "PORT", "AWS_REGION", "BEDROCK_MODEL_ID", "BEDROCK_KNOWLEDGE_BASE_ID", "COGNITO_USER_POOL_ID", "COGNITO_CLIENT_ID", "COGNITO_ISSUER", "COGNITO_DOMAIN", "COGNITO_REDIRECT_URI", "ACCESS_POLICY_JSON", "ARTIFACT_BUCKET", "POC_TIMEOUT_SECONDS", "POC_MAX_ATTEMPTS", "POC_MAX_OUTPUT_TOKENS", "OTEL_SERVICE_NAME", "FACTORY_ENABLED", "FACTORY_PROVIDER", "LAB_DATA_DIR"]))) == 0
       error_message = "Secrets cannot override the application's identity, access policy or safety configuration."
     }
   }
