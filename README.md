@@ -79,6 +79,7 @@ The three participating companies are distinct from External organisation A/B/C.
 ## Source publication evidence
 
 - [Local verification and remaining cloud boundaries](docs/source-publication-verification.md).
+- Code licence: [Apache 2.0](LICENSE). Diagram licence: [CC BY 4.0](docs/DIAGRAMS-LICENSE.md), with attribution to Yves Schillings, Secloudis.
 
 ## Reproducible RAG pipeline
 
