@@ -54,8 +54,9 @@ MODEL_LIMITATIONS = [
     "SQLite supports local gate restart; no cloud durability or exactly-once effects claimed.",
 ]
 FIXTURES = "fixtures"
-VERIFIED_GATES = ("Gates are decided by the Cognito-authenticated run owner; separate "
-                  "gate-approver roles are not implemented yet.")
+GATE_APPROVER_GROUPS = {gate: f"factory-{gate.lower()}-approver" for gate in GATES}
+VERIFIED_GATES = ("Each gate requires a separate Cognito-authenticated approver with the "
+                  "matching factory gate group; the run owner cannot approve it.")
 CONTAINER_CHECKPOINTS = ("Checkpoints are stored in SQLite on the container's own disk: a replaced "
                          "task loses waiting runs. Durable cloud checkpoints are not implemented yet.")
 
@@ -287,9 +288,15 @@ def _gate(gate):
         decision = interrupt(payload)
         if (not isinstance(decision, dict) or decision.get("gate") != gate
                 or decision.get("artifact_hash") != payload["artifact_hash"]
-                or decision.get("actor") != state["owner"]
+                or not isinstance(decision.get("actor"), str)
                 or decision.get("decision") not in {"approve", "reject"}):
             raise ServiceError("The gate decision no longer matches this run", 409)
+        # Verified runs require a second Cognito identity.  The local fixture
+        # harness remains deliberately single-user for offline tests.
+        if ((state.get("identity_verified") is True and decision["actor"] == state["owner"])
+                or (state.get("identity_verified") is not True
+                    and decision["actor"] != state["owner"])):
+            raise ServiceError("The gate decision is not made by the required approver", 409)
         action = decision["decision"]
         status = "rejected" if action == "reject" else "release_ready" if gate == "G4" else "running"
         return {"decisions": [*state["decisions"], decision], "status": status,
@@ -453,17 +460,20 @@ class FactoryService:
         """Bind checkpoint storage to the server-generated run ID with bounded steps."""
         return {"configurable": {"thread_id": run_id}, "recursion_limit": 30, "callbacks": []}
 
-    def _read(self, registry, identity, run_id):
-        """Check registry and checkpoint ownership before returning a run snapshot."""
+    def _read(self, registry, identity, run_id, *, require_owner=True):
+        """Read a run in its scope; inspection always requires its owning subject."""
         if not isinstance(run_id, str) or not re.fullmatch(r"[a-f0-9]{32}", run_id):
             raise ServiceError("Factory run not found", 404)
         row = registry.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
-        if row is None or any(row[key] != value for key, value in identity.items()):
+        scope_keys = ("tenant", "access_level", "company_id", "project_id")
+        if (row is None or any(row[key] != identity[key] for key in scope_keys)
+                or (require_owner and row["owner"] != identity["owner"])):
             raise ServiceError("Factory run not found", 404)
         snapshot = self._graph.get_state(self._config(run_id))
         state = snapshot.values
         if (not state or state.get("run_id") != run_id
-                or any(state.get(key) != value for key, value in identity.items())):
+                or any(state.get(key) != identity[key] for key in scope_keys)
+                or (require_owner and state.get("owner") != identity["owner"])):
             raise ServiceError("Factory checkpoint ownership does not match", 409)
         return snapshot
 
@@ -526,7 +536,9 @@ class FactoryService:
                 "identity_verified": principal.simulated is False,
                 "status": "running", "artifacts": {},
                 "decisions": [], "events": []}, self._config(run_id), durability="sync")
-            return self._public(self._read(registry, identity, run_id))
+            return self._public(self._read(
+                registry, identity, run_id,
+                require_owner=getattr(principal, "simulated", None) is True))
 
     def get_run(self, principal, run_id):
         """Inspect only the caller-owned run and its current pending gate."""
@@ -534,8 +546,14 @@ class FactoryService:
         with self._locked() as registry:
             return self._public(self._read(registry, identity, run_id))
 
+    @staticmethod
+    def _is_gate_approver(principal, gate):
+        """Grant a production decision only to the explicit group for this gate."""
+        return (getattr(principal, "simulated", None) is False
+                and GATE_APPROVER_GROUPS[gate] in getattr(principal, "groups", ()))
+
     def decide_run(self, principal, run_id, gate, artifact_hash, decision, reason):
-        """Validate owner, gate and exact artifact hash under the shared lock.
+        """Validate an authorised gate approver and exact artifact hash under the shared lock.
 
         The receipt is explicitly simulated. Resuming G4 records release readiness;
         it never executes or deploys generated code.
@@ -548,7 +566,15 @@ class FactoryService:
         if not isinstance(artifact_hash, str) or not re.fullmatch(r"[a-f0-9]{64}", artifact_hash):
             raise ServiceError("A valid reviewed artifact hash is required", 422)
         with self._locked() as registry:
-            snapshot = self._read(registry, identity, run_id)
+            # Local fixtures retain their one-person harness. Production requires a
+            # separate principal whose verified Cognito groups grant this exact gate.
+            snapshot = self._read(registry, identity, run_id,
+                                  require_owner=getattr(principal, "simulated", None) is True)
+            if getattr(principal, "simulated", None) is False:
+                if not self._is_gate_approver(principal, gate):
+                    raise ServiceError("This identity is not authorised to decide this Factory gate", 403)
+                if snapshot.values.get("owner") == identity["owner"]:
+                    raise ServiceError("The run owner cannot approve its own Factory gate", 403)
             current = self._public(snapshot)
             pending = current["pending_gate"]
             if pending is None or pending["gate"] != gate or pending["artifact_hash"] != artifact_hash:
@@ -560,7 +586,9 @@ class FactoryService:
                 "identity_verified": principal.simulated is False,
                 "decided_at": datetime.now(timezone.utc).isoformat()}
             self._graph.invoke(Command(resume=receipt), self._config(run_id), durability="sync")
-            return self._public(self._read(registry, identity, run_id))
+            return self._public(self._read(
+                registry, identity, run_id,
+                require_owner=getattr(principal, "simulated", None) is True))
 
     def close(self):
         """Close the checkpoint connection once, after active service work has ended."""
