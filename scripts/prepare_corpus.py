@@ -5,6 +5,11 @@ from pathlib import Path
 
 
 def prepare(output: Path):
+    """Create synthetic text and metadata sidecars in a fresh local output directory.
+
+    Preserve source scope and version for later Knowledge Bases ingestion.
+    No upload, model embedding or AWS request occurs here.
+    """
     source = Path(__file__).resolve().parents[1] / "corpus" / "web_knowledge.json"
     data = json.loads(source.read_text(encoding="utf-8"))
     if data.get("synthetic") is not True:

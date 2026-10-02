@@ -14,6 +14,7 @@ BASE = "http://127.0.0.1:8000"
 
 
 def request(path: str, *, identity: str | None = None, payload=None):
+    """Call only the fixed loopback server, optionally with a simulated identity."""
     headers = {"Content-Type": "application/json"}
     if identity:
         headers["X-Demo-User"] = identity
@@ -24,6 +25,7 @@ def request(path: str, *, identity: str | None = None, payload=None):
 
 
 def main() -> None:
+    """Verify installed browser assets and the offline journey up to human review."""
     deadline = time.monotonic() + 60
     while True:
         try:

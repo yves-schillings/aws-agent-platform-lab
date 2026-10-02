@@ -10,6 +10,7 @@ from .retrieval import access_scope
 
 
 async def _call(tenant):
+    """Launch the fixed checklist process with a minimal environment and bounded timeout."""
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
     # Child receives no cloud keys, tokens, task credential URI or telemetry secrets.
@@ -37,5 +38,6 @@ async def _call(tenant):
 
 
 def call_checklist(principal):
+    """Derive tenant from the principal and return a validated, read-only tool result."""
     tenant, _ = access_scope(principal)
     return asyncio.run(_call(tenant))

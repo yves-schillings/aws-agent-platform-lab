@@ -10,6 +10,7 @@ _configured = False
 
 
 def configure_telemetry():
+    """Install one safe JSON span exporter per process for log collection."""
     global _configured
     with _lock:
         if _configured:
@@ -20,7 +21,9 @@ def configure_telemetry():
         from opentelemetry.sdk.trace.export import SimpleSpanProcessor, SpanExporter, SpanExportResult
 
         class SafeJsonExporter(SpanExporter):
+            """Export only timing and correlation fields, excluding arbitrary span attributes."""
             def export(self, spans):
+                """Write bounded metadata for completed spans to the application logger."""
                 logger = logging.getLogger("aws_agent_platform_lab.spans")
                 for span in spans:
                     logger.info(json.dumps({"event": "otel_span", "name": span.name,
@@ -32,6 +35,7 @@ def configure_telemetry():
                 return SpanExportResult.SUCCESS
 
             def shutdown(self):
+                """No external exporter connection needs closing for synchronous log output."""
                 pass
 
         provider = TracerProvider(resource=Resource.create({"service.name": "aws-agent-platform-lab"}))

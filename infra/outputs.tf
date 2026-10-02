@@ -1,3 +1,4 @@
+# Publish resource identifiers needed by operators; never output secret values or tokens.
 output "ecr_repository_url" { value = aws_ecr_repository.app.repository_url }
 output "github_deploy_role_arn" { value = aws_iam_role.github_deploy.arn }
 output "cognito_user_pool_id" { value = aws_cognito_user_pool.main.id }

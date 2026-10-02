@@ -4,6 +4,8 @@
 
 This table separates the current demonstration infrastructure from the complete factory target. Component ownership describes roles to assign; it does not imply that any organisation has accepted production operation.
 
+**Separate local increment:** [factory.py](../../src/aws_agent_platform_lab/factory.py) adds deterministic LangGraph routing through five roles and four gates, with SQLite checkpoints. The `/factory` inspection prototype and `/api/factory/runs` are local-only. They do not change the AWS baseline mapped below: real Factory inference, remote tools, authenticated approver roles, generated-code execution and cloud durability remain unfinished. See [development stages](../development-start.md) and [conversational access](../conversational-access.md).
+
 | Logical component | Current source or definition | Current deployment behavior | Factory dependency / owner |
 |---|---|---|---|
 | Intake and human interaction | [web.py](../../src/aws_agent_platform_lab/web.py), [static UI](../../src/aws_agent_platform_lab/static/) | One FastAPI/UI container, one exact-artifact decision | Four-gate application and role policy; factory engineering + designated gate owners |
@@ -29,3 +31,7 @@ The controller and workers may share code packages in an initial implementation,
 The target sandbox has no application task role. Its execution role only permits image pulling and log delivery. Private subnets, approved VPC endpoints, scoped endpoint policies and DNS controls bound required network access; no Docker host socket is exposed. The output collector and trusted validator remain separate target components; see [D08](../slides/08-sandbox-and-validation.md).
 
 Current account, region, model access, cost allowance and operational ownership remain inputs to establish. Use the actual [deployment guide](../deployment.md), not invented Terraform variables or a guessed cloud diagram.
+
+## Selected code-first target
+
+The three-role Python controller and local stdio MCP checklist remain the implemented baseline. LangGraph is now a pinned dependency for the separate deterministic Factory increment. LangChain AWS `ChatBedrockConverse` and three company-owned remote MCP endpoints over Streamable HTTP/HTTPS remain target work. `DynamoDBSaver` is a candidate cloud checkpointer to qualify, not deployment evidence; current Factory checkpoints use local SQLite. The [migration plan](multi-company-api-architecture.md#selected-python-workflow-and-company-mcp-connections) preserves the existing evidence and specifies crash/restart, authorisation and exact-version gate checks. The generated output is one [common affiliation-consultation application](../slides/31-shared-application-and-company-apis.md), which will use company business APIs directly at runtime.

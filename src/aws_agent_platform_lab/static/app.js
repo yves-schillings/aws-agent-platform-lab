@@ -1,3 +1,5 @@
+// Baseline browser: authenticate, inspect permitted evidence and record an exact-artifact decision.
+// UI state never supplies source permissions; those are derived and checked by the Python server.
 'use strict';
 // Access tokens stay in this closure. Only temporary OAuth state/verifier use sessionStorage.
 (() => {
@@ -12,6 +14,7 @@
     const node = document.createElement(tag); node.textContent = text;
     if (className) node.className = className; return node;
   }
+  // Keep credentials out of persistent storage and discard them after an authentication failure.
   async function api(path, options = {}) {
     const headers = {...(options.headers || {})};
     if (token) headers.Authorization = `Bearer ${token}`;
@@ -29,6 +32,7 @@
     return body;
   }
   const base64url = bytes => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  // Proof Key for Code Exchange and random state bind the login response to this browser session.
   async function signIn() {
     const verifier = base64url(crypto.getRandomValues(new Uint8Array(48)));
     const state = base64url(crypto.getRandomValues(new Uint8Array(32)));
@@ -40,6 +44,7 @@
       code_challenge_method: 'S256', code_challenge: challenge}).toString();
     location.assign(url.toString());
   }
+  // Reject mismatched or expired login state before exchanging a one-time authorization code.
   async function processCallback(params) {
     if (!params.has('code') && !params.has('error')) return;
     const stored = sessionStorage.getItem('lab.oauth'); sessionStorage.removeItem('lab.oauth');
@@ -69,6 +74,7 @@
     $('start-run').disabled = false; $('sign-in').hidden = true;
     $('sign-out').hidden = config.mode === 'offline';
   }
+  // Display sources and model output using text nodes, never interpreted HTML.
   function renderRun(run) {
     $('evidence').hidden = false;
     const status = run.status || 'unknown'; $('run-status').textContent = status.replaceAll('_', ' ');

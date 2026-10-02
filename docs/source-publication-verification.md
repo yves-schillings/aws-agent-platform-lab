@@ -1,0 +1,26 @@
+# Local verification for GitHub source publication
+
+- **Scope and date**
+  - Verification performed on 2 October 2026, before publishing the combined working tree based on commit `86ac8aa54de37a5c5c4770222a0704ebb2e2d3de`.
+  - The commit containing this document identifies the verified source revision. This records local application checks, not a cloud deployment.
+  - The publication retains the existing repository access settings. No open-source licence is selected or implied.
+- **Implemented changes in this publication**
+  - Preserve the existing FastAPI/browser baseline and AWS service adapters.
+  - Include the local deterministic LangGraph Factory, five roles, four simulated gates, SQLite checkpoints and local stdio Model Context Protocol (MCP) adapter.
+  - Add English explanatory docstrings throughout application and operational modules, plus browser and infrastructure comments. The documentation-only Python edits were checked to preserve executable syntax trees.
+  - Reject blank or overlong source versions and mixed versions of one document within a retrieval response.
+  - Add six retrieval acceptance tests and the [reproducible RAG guide](rag-pipeline.md). RAG means Retrieval-Augmented Generation.
+- **Checks actually executed**
+  - The complete application suite passed: 125 tests in 45.198 seconds, including real local stdio protocol tests with a test client.
+  - Deployment-script tests passed: 8 tests in 0.041 seconds using injected cloud clients.
+  - `pip check` reported no broken requirements in the installed repository environment.
+  - JavaScript syntax checks passed for both browser clients.
+  - GitHub workflow syntax passed the installed `actionlint` checker.
+  - Candidate Python source files parsed successfully, and relative Markdown links resolved to local files.
+  - A focused high-confidence secret-pattern check identified only deliberately invalid credential-URL fixtures in two endpoint-rejection tests. No real credentials were identified. This is a bounded review, not a guarantee against every secret format.
+- **What these results do not establish**
+  - No AWS (Amazon Web Services) deployment, live Cognito login, cloud ingestion, vector retrieval, model inference or AWS-to-Microsoft Foundry connection was executed.
+  - No new Docker image was built locally, and no new dependency advisory scan was run in this verification. The GitHub offline workflow separately performs those checks for its own commit.
+  - No Claude Code, Codex or Microsoft Copilot Studio client connection was established. The MCP evidence uses a local test client and simulated identity.
+  - No generated application code was executed or deployed by the Factory. Remote approval, cloud checkpoints, remote company connectors and production operation remain unfinished work.
+  - A consistent source version does not prove freshness against an authoritative source. The RAG guide specifies the remaining update and deletion checks.

@@ -19,15 +19,18 @@ class ValidationError(ValueError):
 
 
 def canonical_bytes(value: Any) -> bytes:
+    """Encode deterministic JSON bytes used for persistence and exact-artifact hashes."""
     return (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2,
                        allow_nan=False) + "\n").encode("utf-8")
 
 
 def sha256_bytes(value: bytes) -> str:
+    """Return the SHA-256 fingerprint of the exact supplied bytes."""
     return hashlib.sha256(value).hexdigest()
 
 
 def _unique_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Reject duplicate JSON keys so validation and review see the same values."""
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -37,6 +40,7 @@ def _unique_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 
 def _finite_float(value: str) -> float:
+    """Reject non-finite JSON numbers instead of accepting ambiguous numeric data."""
     result = float(value)
     if not math.isfinite(result):
         raise ValidationError("JSON numbers must be finite")
@@ -44,6 +48,7 @@ def _finite_float(value: str) -> float:
 
 
 def parse_json(text: str, *, max_bytes: int = MAX_JSON_BYTES) -> dict[str, Any]:
+    """Parse a bounded JSON object with duplicate-key and numeric validation."""
     if not isinstance(text, str):
         raise ValidationError("JSON payload missing or too large")
     try:
@@ -63,6 +68,7 @@ def parse_json(text: str, *, max_bytes: int = MAX_JSON_BYTES) -> dict[str, Any]:
 
 
 def load_json(path: Path) -> dict[str, Any]:
+    """Read a local JSON file through the same strict input boundary."""
     if path.stat().st_size > MAX_JSON_BYTES:
         raise ValidationError(f"Input file too large: {path.name}")
     try:
@@ -72,6 +78,7 @@ def load_json(path: Path) -> dict[str, Any]:
 
 
 def text_field(value: Any, name: str, *, limit: int = 12_000) -> str:
+    """Validate one required, bounded text field without changing its meaning."""
     if not isinstance(value, str) or not value.strip() or len(value) > limit:
         raise ValidationError(f"{name} must be nonempty text of at most {limit} characters")
     if any(ord(char) < 32 and char not in "\n\r\t" for char in value):
@@ -81,6 +88,7 @@ def text_field(value: Any, name: str, *, limit: int = 12_000) -> str:
 
 def text_list(value: Any, name: str, *, minimum: int = 1,
               maximum: int = 30) -> list[str]:
+    """Validate a bounded list of nonempty textual values."""
     if not isinstance(value, list) or not minimum <= len(value) <= maximum:
         raise ValidationError(f"{name} must contain {minimum} to {maximum} strings")
     for item in value:
@@ -89,6 +97,7 @@ def text_list(value: Any, name: str, *, minimum: int = 1,
 
 
 def validate_scenario(value: dict[str, Any]) -> dict[str, Any]:
+    """Require an explicitly synthetic scenario with the expected request fields."""
     if value.get("synthetic") is not True:
         raise ValidationError("Only explicitly synthetic scenarios are accepted")
     if not isinstance(value.get("id"), str) or not IDENTIFIER.fullmatch(value["id"]):
@@ -100,6 +109,7 @@ def validate_scenario(value: dict[str, Any]) -> dict[str, Any]:
 
 
 def validate_corpus(value: dict[str, Any]) -> list[dict[str, str]]:
+    """Validate declared synthetic documents; this is not user authorization."""
     if value.get("authorized") is not True or value.get("synthetic") is not True:
         raise ValidationError("Corpus must declare authorized=true and synthetic=true")
     documents = value.get("documents")
@@ -121,6 +131,7 @@ def validate_corpus(value: dict[str, Any]) -> list[dict[str, str]]:
 
 
 def citations(value: Any, allowed_ids: set[str], name: str = "citations") -> list[str]:
+    """Reject references outside the retrieved document IDs; this is not fact checking."""
     result = text_list(value, name, maximum=100)
     if len(result) != len(set(result)) or any(item not in allowed_ids for item in result):
         raise ValidationError(f"{name} must contain unique retrieved document IDs")
@@ -129,6 +140,7 @@ def citations(value: Any, allowed_ids: set[str], name: str = "citations") -> lis
 
 def validate_response(role: str, value: dict[str, Any],
                       allowed_ids: set[str]) -> dict[str, Any]:
+    """Enforce the role-specific output schema and permitted citation identifiers."""
     citations(value.get("citations"), allowed_ids)
     if role == "analyst":
         text_field(value.get("summary"), "analyst.summary")

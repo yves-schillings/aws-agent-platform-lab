@@ -1,3 +1,4 @@
+# Manual rollback targets a reviewed immutable image and verifies the currently deployed version.
 name: Roll back to a known-good image
 
 on:

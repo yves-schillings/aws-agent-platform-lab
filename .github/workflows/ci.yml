@@ -1,3 +1,5 @@
+# Push and pull-request checks stay offline: tests, dependency audit, Terraform syntax and container smoke.
+# No deployment role or live model call is granted to this workflow.
 name: Offline checks
 
 on:

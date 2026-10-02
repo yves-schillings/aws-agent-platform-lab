@@ -16,7 +16,7 @@ Open [the local interface](http://127.0.0.1:8000). The process binds only to `12
 
 ## Demonstration journey
 
-1. Keep the Alpha workspace or select Beta. The user selector represents a simulated identity, not a login.
+1. Keep the `alpha` workspace or select `beta`. The user selector represents a simulated identity, not a login.
 2. Read the synthetic request, choose English or Dutch and confirm that the input is synthetic.
 3. Start the workflow. Follow the analyst, designer and reviewer.
 4. Open the source evidence and inspect the complete artifact. Source contents are fetched through an authorised source-viewer endpoint.

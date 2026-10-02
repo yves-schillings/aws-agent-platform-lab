@@ -1,3 +1,5 @@
+# Package the reviewed Python application and synthetic fixtures, never local secrets or run state.
+# The non-root container runs one FastAPI process; cloud services remain separately configured.
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \

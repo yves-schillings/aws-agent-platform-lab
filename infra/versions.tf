@@ -1,3 +1,4 @@
+# Pin Terraform/provider compatibility so validation and deployment use the reviewed schema.
 terraform {
   required_version = ">= 1.12.2, < 2.0.0"
   required_providers {

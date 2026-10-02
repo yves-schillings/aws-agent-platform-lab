@@ -10,10 +10,12 @@ from .models import canonical_bytes, sha256_bytes
 
 
 class ConflictError(RuntimeError):
+    """A conditional write lost its expected version and must not overwrite newer data."""
     pass
 
 
 def safe_key(key: str) -> str:
+    """Reject absolute paths, traversal and unsupported JSON storage keys."""
     if not re.fullmatch(r"[a-zA-Z0-9_/-]+\.json", key) or ".." in key or key.startswith("/"):
         raise ValueError("Invalid storage key")
     return key
@@ -22,11 +24,13 @@ def safe_key(key: str) -> str:
 class LocalStore:
     """Single-process development store, deliberately not a distributed lock."""
     def __init__(self, root: Path):
+        """Create the local root and an in-process reentrant lock."""
         self.root = root.resolve()
         self.root.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
 
     def _path(self, key):
+        """Resolve a safe child path and reject symlinks or directory junctions."""
         path = self.root / safe_key(key)
         if not path.resolve().is_relative_to(self.root):
             raise ValueError("Storage path escapes root")
@@ -38,6 +42,7 @@ class LocalStore:
         return path
 
     def get(self, key):
+        """Return decoded JSON and its content hash, or (None, None) when absent."""
         with self._lock:
             path = self._path(key)
             if not path.exists():
@@ -61,7 +66,9 @@ class LocalStore:
 
 
 class S3Store:
+    """Persist JSON in an ordinary S3 bucket using conditional object writes."""
     def __init__(self, bucket: str, region: str, client=None):
+        """Bind a bucket and region to a bounded client using runtime AWS credentials."""
         if not bucket or not region:
             raise ValueError("AWS storage configuration is incomplete")
         if client is None:
@@ -74,6 +81,7 @@ class S3Store:
         self.bucket, self.client = bucket, client
 
     def get(self, key):
+        """Read one bounded object and return JSON with its opaque S3 version validator."""
         try:
             response = self.client.get_object(Bucket=self.bucket, Key=safe_key(key))
         except Exception as error:
@@ -87,6 +95,7 @@ class S3Store:
         return json.loads(data), response["ETag"]
 
     def put(self, key, value, expected=None):
+        """Create only if absent, or replace only the supplied expected object version."""
         condition = {"IfNoneMatch": "*"} if expected is None else {"IfMatch": expected}
         try:
             result = self.client.put_object(Bucket=self.bucket, Key=safe_key(key),

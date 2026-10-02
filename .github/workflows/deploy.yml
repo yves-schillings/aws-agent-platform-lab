@@ -1,3 +1,5 @@
+# Manual AWS delivery only. A GitHub source push does not invoke this deployment workflow.
+# Environment protection and short-lived OpenID Connect credentials gate the exact image update.
 name: Publish image or update existing AWS service
 
 on:

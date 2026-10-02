@@ -16,6 +16,7 @@ import jwt
 
 
 class AuthError(Exception):
+    """Authentication or authorization failure with a safe HTTP status."""
     def __init__(self, message: str, status_code: int = 401):
         super().__init__(message)
         self.status_code = status_code
@@ -23,6 +24,7 @@ class AuthError(Exception):
 
 @dataclass(frozen=True)
 class Principal:
+    """Verified caller and server-derived source scope; simulated marks local fixtures."""
     subject: str
     groups: tuple[str, ...]
     tenant: str
@@ -38,6 +40,7 @@ _LABEL = re.compile(r"^[a-z0-9_-]{1,64}$")
 
 
 def local_demo_mode(environ: Mapping[str, str] | None = None) -> bool:
+    """Read the explicit local-mode switch; invalid values fail closed."""
     env = os.environ if environ is None else environ
     raw = env.get("LOCAL_DEMO_MODE", "false").strip().lower()
     if raw not in {"true", "false"}:
@@ -46,6 +49,7 @@ def local_demo_mode(environ: Mapping[str, str] | None = None) -> bool:
 
 
 def _https_url(value: str, label: str, *, origin_only: bool = False) -> str:
+    """Validate a configured HTTPS destination without accepting embedded credentials."""
     try:
         parts = urlsplit(value)
         valid = (parts.scheme == "https" and parts.hostname and "." in parts.hostname
@@ -62,6 +66,7 @@ def _https_url(value: str, label: str, *, origin_only: bool = False) -> str:
 
 @dataclass(frozen=True)
 class CognitoSettings:
+    """Trusted Cognito endpoints, application identity and group-to-source policy."""
     region: str
     pool_id: str
     client_id: str
@@ -73,6 +78,7 @@ class CognitoSettings:
 
     @classmethod
     def from_env(cls, environ: Mapping[str, str] | None = None) -> "CognitoSettings":
+        """Validate deployment settings before any untrusted token can influence access."""
         env = os.environ if environ is None else environ
         def need(name: str) -> str:
             value = env.get(name, "").strip()
@@ -113,6 +119,7 @@ class CognitoSettings:
         return cls(region, pool, client, issuer, domain, redirect, policy, scopes)
 
     def public_config(self) -> dict[str, Any]:
+        """Return only browser login settings; never expose policy or credentials."""
         callback = urlsplit(self.redirect_uri)
         return {"mode": "aws", "authorization_endpoint": self.domain + "/oauth2/authorize",
                 "logout_endpoint": self.domain + "/logout", "client_id": self.client_id,
@@ -122,13 +129,20 @@ class CognitoSettings:
 
 
 class CognitoVerifier:
+    """Verify a Cognito access token and resolve one unambiguous server-owned scope."""
     def __init__(self, settings: CognitoSettings, *, jwks_client: Any = None):
+        """Bind signing-key discovery to the configured issuer, not token claims."""
         self.settings = settings
         self.jwks = jwks_client or jwt.PyJWKClient(
             settings.issuer + "/.well-known/jwks.json", cache_jwk_set=True,
             lifespan=300, timeout=5)
 
     def verify(self, token: str) -> Principal:
+        """Validate signature, issuer, expiry, client and scopes; return a Principal.
+
+        Unverified headers select a key only. Permission mapping uses verified
+        claims and trusted configuration, never a tenant supplied by the browser.
+        """
         if not isinstance(token, str) or not 1 <= len(token) <= 16_384:
             raise AuthError("A valid Cognito access token is required.")
         try:

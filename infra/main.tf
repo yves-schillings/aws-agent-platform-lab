@@ -1,3 +1,5 @@
+# Deployment candidate only: these definitions create resources only when Terraform is explicitly applied.
+# Source objects, vector search and run artifacts are separate stores with separately scoped roles.
 locals {
   account_arn         = "arn:aws:iam::${var.aws_account_id}:root"
   resource_prefix     = "${var.name_prefix}-${var.aws_account_id}-${var.aws_region}"

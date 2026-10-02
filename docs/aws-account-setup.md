@@ -2,8 +2,10 @@
 
 **Yves Schillings, Secloudis. Account name: `Secloudis Lab`.**
 
-Account creation is in progress; activation and deployment access have not been
-confirmed. This checklist prepares the account for the [deployment runbook](deployment.md).
+Account console access was confirmed by a user-provided capture on 30 September
+2026. Operator access, MFA, the deployment region, budget controls, models and
+application services remain unverified. This checklist prepares the remaining
+account prerequisites for the [deployment runbook](deployment.md).
 It does not create cloud resources or authorise a paid deployment.
 
 ## 1. Complete registration and confirm activation
@@ -23,8 +25,9 @@ Before deployment, verify that the chosen plan permits the required services and
 models. Do not assume credits cover every charge; consult
 [AWS account-plan details](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/free-tier-plans.html).
 
-Wait for AWS's activation confirmation, then verify console access. A submitted
-registration form is not proof that services are available. Follow the
+Console access for this lab is now confirmed; the registration instructions above
+are retained as reference. Service/model availability and deployment authority
+still require separate verification. For a new registration, follow the
 [official registration steps](https://docs.aws.amazon.com/accounts/latest/reference/getting-started.html)
 if activation remains pending.
 
