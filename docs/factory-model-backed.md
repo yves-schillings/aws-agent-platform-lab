@@ -26,7 +26,7 @@ Terraform: `enable_factory = true` sets `FACTORY_ENABLED=true`, `FACTORY_PROVIDE
 
 - Local mode accepts only the three fixture identities; a principal marked as verified is refused (403).
 - AWS mode (`verified_identities=True`, set by `service_from_environment` when `LOCAL_DEMO_MODE` is not `true`) accepts Cognito-verified principals whose token groups map to a known company. Gate decisions record `identity_verified: true`.
-- Gates are decided by the authenticated run owner. Separate gate-approver roles are not implemented.
+- A Cognito-authenticated gate approver must be a separate identity from the run owner and must hold the matching `factory-g1-approver`, `factory-g2-approver`, `factory-g3-approver` or `factory-g4-approver` group. The server checks both the company scope and that exact gate group before it resumes LangGraph. Local fixtures retain a single-user approval harness for offline tests.
 
 ## Known MVP limits
 
@@ -36,4 +36,4 @@ Terraform: `enable_factory = true` sets `FACTORY_ENABLED=true`, `FACTORY_PROVIDE
 
 ## Tests
 
-`tests/test_factory_model.py` covers: five model-backed roles through four gates, per-company document isolation, refusal before any model call, invalid JSON, out-of-scope citations, sanitized provider errors, unsafe file paths, reviewer approvals with open issues, environment selection, and the Cognito HTTP path (valid token, missing or forged token, cross-user isolation, routes disabled unless enabled).
+`tests/test_factory_model.py` covers: five model-backed roles through four gates, per-company document isolation, refusal before any model call, invalid JSON, out-of-scope citations, sanitized provider errors, unsafe file paths, reviewer approvals with open issues, environment selection, and the Cognito HTTP path (valid token, missing or forged token, cross-user isolation, run-owner denial, wrong-gate-approver denial, and routes disabled unless enabled).
