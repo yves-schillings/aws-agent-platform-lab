@@ -180,7 +180,7 @@ flowchart TB
   EA <-.->|Optional agreed route| EC
 ```
 
-AWS hosts the proposed Factory and Shared Business Platform. Company/external hosting may be AWS, Azure, another cloud or on-premises; this is an integration option, not a confirmed deployment fact. External A/B/C are separately governed business interfaces and proposed synthetic contract mocks, not presumed MCP hosts or Factory tenants. The shared application contacts only the resource owners and optional external services required by the authorised request. See [business functions and hosting](../slides/34-business-functions-and-hosting.md).
+AWS hosts the proposed Factory and Shared Business Platform. Company/external hosting may be AWS, Azure, another cloud or on-premises; this is an integration option, not a confirmed deployment fact. External A/B/C are separately governed business interfaces and proposed synthetic contract mocks, not presumed MCP hosts or Factory tenants. The shared application contacts only the resource owners and optional external services required by the authorised request.
 
 ## Proposed REST/JSON contract and identity
 
@@ -325,7 +325,7 @@ The delivered application is a separate runtime. After G4 Release, its registere
 5. Add and qualify the three remote MCP connections using synthetic records and contracts. Keep the local stdio checklist available for regression checks. Verify wrong audience, wrong company, substituted endpoint, revoked grant, timeout, duplicate response and server restart, as well as permitted consultation.
 6. Add isolated code execution, protected independent tests and the exact-version release path for the common application. Durably accepted job dispatch must be implemented before promising restart-safe 202 acceptance; an outbox plus SQS is a candidate design, not part of the current process-local execution proof.
 
-The detailed plan maps to existing EP-05 orchestration/state/context, EP-06 execution, EP-07 release and EP-09 company features. It does not create new feature IDs or claim the target has passed qualification. See [Python workflow](../slides/30-langgraph-workflow-in-python.md) and [shared application/API boundary](../slides/31-shared-application-and-company-apis.md).
+The detailed plan maps to existing EP-05 orchestration/state/context, EP-06 execution, EP-07 release and EP-09 company features. It does not create new feature IDs or claim the target has passed qualification.
 
 ## Identity resolution and authorization
 
@@ -425,7 +425,7 @@ F04-02 also depends on F09-03 so the initial risk evidence covers shared use. F0
 
 Retain expected/observed outcome, exact revision, company/project context, effective policy/grant version, candidate/target hashes and redacted trace references. Existing `alpha`/`beta` mock tests do not complete these new acceptance tests.
 
-Human business/data owners, eligible gate approvers, platform engineers, operators and application users retain distinct authority from the five software agents. The target responsibilities and approval policy are explained in [Actors and Responsibilities](../slides/32-actors-and-responsibilities.md); the [Business and Delivery Ecosystem](../slides/33-business-and-delivery-ecosystem.md) separates organisational blocks and external interface families.
+Human business/data owners, eligible gate approvers, platform engineers, operators and application users retain distinct authority from the five software agents.
 
 ## Related contracts
 

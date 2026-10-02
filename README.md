@@ -28,7 +28,11 @@ The repository is public. Source availability does not establish that an AWS ser
 
 ## Current implementation
 
-**Local Factory increment:** a separate LangGraph workflow runs Analyst, Architect, Code Author, Tester and Reviewer, pausing at **G1 Scope, G2 Design, G3 Quality and G4 Release**. SQLite checkpoints retain gate pauses across restarts. Tests cover rejection, stale versions, replay, cross-owner access and concurrent decisions. All role outputs and identities are simulated: the proposed code is inert, proposed business tests are not executed, and G4 does not deploy anything. Correction/resubmission and cloud durability remain future work.
+**Factory increment:** a separate LangGraph workflow runs Analyst, Architect, Code Author, Tester and Reviewer, pausing at **G1 Scope, G2 Design, G3 Quality and G4 Release**. SQLite checkpoints retain gate pauses across restarts. Tests cover rejection, stale versions, replay, cross-owner access and concurrent decisions.
+
+- By default the five roles return fixed examples. With `FACTORY_PROVIDER=mock`, `aws` or `azure`, each role calls that model adapter with the reference documents permitted for the caller; an answer is kept only if its JSON matches the role schema and its citations name those documents, otherwise the run stops as failed.
+- In AWS mode, `FACTORY_ENABLED=true` (Terraform `enable_factory = true`) exposes the Factory API to Cognito-verified users; documents then come from Bedrock Knowledge Bases.
+- Proposed code and tests remain inert text: nothing is built, executed or deployed, and G4 records a decision only. Separate gate-approver roles, durable cloud checkpoints and correction/resubmission remain future work. See [the model-backed Factory notes](docs/factory-model-backed.md).
 
 The `/factory` browser prototype is a temporary inspection harness. The conversational interface is still being selected; [Claude, Codex and Copilot Studio access](docs/conversational-access.md) describes the common MCP boundary and the human-approval requirements. MCP means Model Context Protocol. No connection to those clients or remote AWS Factory is claimed. See [development stages and preflight](docs/development-start.md).
 
@@ -57,7 +61,7 @@ $env:LOCAL_DEMO_MODE = 'true'
 
 Open [the local browser interface](http://127.0.0.1:8000). It binds only to loopback in local mode. [The local demonstration guide](docs/local-demo.md) explains the two synthetic workspaces, source viewer, evidence and decisions. Generated state uses the ignored `.lab-data` directory. On macOS/Linux use `python3.12`, `.venv/bin/python` and `export LOCAL_DEMO_MODE=true` for the equivalent commands.
 
-The optional [Factory inspection prototype](http://127.0.0.1:8000/factory) uses three separate simulated company identities and the same ignored data root. Factory routes are disabled outside local mode. These fixtures do not implement real company federation or cross-company sharing.
+The optional [Factory inspection prototype](http://127.0.0.1:8000/factory) uses three separate simulated company identities and the same ignored data root. Set `FACTORY_PROVIDER=mock` to exercise the model-backed path offline. Outside local mode the Factory API exists only when `FACTORY_ENABLED=true`, and the browser page stays local. These fixtures do not implement real company federation or cross-company sharing.
 
 `requirements.txt` pins the dependency versions used for verification. The core CLI mock path itself uses only the standard library; the full browser and authentication tests require the installed dependencies.
 
@@ -122,6 +126,4 @@ The [epic and feature backlog](docs/backlog/epics-features.md) organises the pro
 The [staged delivery plan](docs/four-day-plan.md) progresses from account readiness to the first verified AWS demonstration through Stage 1–4. It distinguishes implemented evidence from planned platform capabilities. No remote repository or cloud resources are created by this source tree.
 
 Follow the [deployment guide](docs/deployment.md), [operating runbook](docs/operations.md)
-and [rollback procedure](docs/rollback.md) for the AWS stage. Practise the
-[English and Dutch demonstration script](docs/demo-script-en-nl.md) using only
-claims supported by the run and environment actually shown.
+and [rollback procedure](docs/rollback.md) for the AWS stage.
