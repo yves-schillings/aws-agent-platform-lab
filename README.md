@@ -30,7 +30,7 @@ The repository is public. Source availability does not establish that an AWS ser
 
 **Factory increment:** a separate LangGraph workflow runs Analyst, Architect, Code Author, Tester and Reviewer, pausing at **G1 Scope, G2 Design, G3 Quality and G4 Release**. SQLite checkpoints retain gate pauses across restarts. Tests cover rejection, stale versions, replay, cross-owner access and concurrent decisions.
 
-- By default the five roles return fixed examples. With `FACTORY_PROVIDER=mock`, `aws` or `azure`, each role calls that model adapter with the reference documents permitted for the caller; an answer is kept only if its JSON matches the role schema and its citations name those documents, otherwise the run stops as failed.
+- By default the five roles return fixed examples. With `FACTORY_PROVIDER=mock`, `aws`, `aws-langchain` or `azure`, each role calls that model adapter with the reference documents permitted for the caller; an answer is kept only if its JSON matches the role schema and its citations name those documents, otherwise the run stops as failed.
 - In AWS mode, `FACTORY_ENABLED=true` (Terraform `enable_factory = true`) exposes the Factory API to Cognito-verified users; documents then come from Bedrock Knowledge Bases.
 - Proposed code and tests remain inert text: nothing is built, executed or deployed, and G4 records a decision only. In AWS mode, each gate requires a separate Cognito-authenticated identity in its matching `factory-g1-approver` through `factory-g4-approver` group; the run owner cannot approve it. Durable cloud checkpoints and correction/resubmission remain future work. See [the model-backed Factory notes](docs/factory-model-backed.md).
 
@@ -90,7 +90,7 @@ Follow [the AWS setup notes](aws/README.md). Install the optional SDK only in th
 .\.venv\Scripts\python.exe -m pip install -e '.[aws]'
 ```
 
-Configure an authorised AWS role or profile, region and available Converse-compatible model. For the CLI, `--provider aws` invokes Bedrock. For the web service, absent/false `LOCAL_DEMO_MODE` selects the AWS path and requires the configured identity, retrieval, model and storage services. Those operations can incur charges. Keep credentials outside the repository and keep the supplied examples synthetic.
+Configure an authorised AWS role or profile, region and available Converse-compatible model. For the CLI, `--provider aws` invokes Bedrock directly through Boto3. The Factory can alternatively select `FACTORY_PROVIDER=aws-langchain` to invoke the same Bedrock model through LangChain. For the web service, absent/false `LOCAL_DEMO_MODE` selects the AWS path and requires the configured identity, retrieval, model and storage services. Those operations can incur charges. Keep credentials outside the repository and keep the supplied examples synthetic.
 
 ## What the workflow proves
 

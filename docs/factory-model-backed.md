@@ -8,7 +8,8 @@ This increment turns the five-role Factory from fixed examples into model calls,
 | --- | --- |
 | `FACTORY_PROVIDER` unset or `fixtures` | Unchanged behaviour: the five roles return fixed examples. |
 | `FACTORY_PROVIDER=mock` | Roles call the local mock model: offline end-to-end checks. |
-| `FACTORY_PROVIDER=aws` | Roles call Bedrock Converse through `AwsBedrockProvider`; with `BEDROCK_KNOWLEDGE_BASE_ID` set, documents come from Bedrock Knowledge Bases. |
+| `FACTORY_PROVIDER=aws` | Roles call Bedrock Converse directly through `AwsBedrockProvider`; with `BEDROCK_KNOWLEDGE_BASE_ID` set, documents come from Bedrock Knowledge Bases. |
+| `FACTORY_PROVIDER=aws-langchain` | Roles call the same Bedrock model through `LangChainBedrockProvider` and `ChatBedrockConverse`; retrieval remains the same scoped Knowledge Base path. |
 | `FACTORY_ENABLED=true` (AWS mode) | Exposes `/api/factory/*` to Cognito-verified users. Without it the routes return 404. |
 
 Terraform: `enable_factory = true` sets `FACTORY_ENABLED=true`, `FACTORY_PROVIDER=aws` and `LAB_DATA_DIR=/app/artifacts/lab-data` (the container's writable directory). Default is `false`.
@@ -32,7 +33,7 @@ Terraform: `enable_factory = true` sets `FACTORY_ENABLED=true`, `FACTORY_PROVIDE
 
 - Checkpoints use SQLite on the task's own disk: a replaced ECS task loses waiting runs. DynamoDB checkpoints are not implemented.
 - The `/factory` browser page remains local-only; on AWS the Factory is reached through its API with a bearer token.
-- The LangChain `ChatBedrockConverse` adapter is not added yet (it needs the `langchain-aws` dependency); the Bedrock call uses Boto3 Converse.
+- Choose `aws` for the direct Boto3 Converse adapter or `aws-langchain` for `ChatBedrockConverse`. Both use the configured AWS region, model, profile and bounded timeout settings.
 
 ## Tests
 

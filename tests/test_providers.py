@@ -7,7 +7,7 @@ from unittest.mock import patch
 from urllib.error import HTTPError, URLError
 
 from aws_agent_platform_lab.providers import (
-    AwsBedrockProvider, AzureOpenAIProvider, MockProvider,
+    AwsBedrockProvider, AzureOpenAIProvider, LangChainBedrockProvider, MockProvider,
     ProviderError, ProviderConfigurationError, _NoRedirects, create_provider,
 )
 
@@ -107,6 +107,30 @@ class ProviderTests(unittest.TestCase):
         self.assertEqual(provider.last_usage["input_tokens"], 17)
         self.assertIsNone(provider.last_usage["estimated_cost_usd"])
 
+    def test_langchain_bedrock_request_response_and_token_usage(self):
+        class Response:
+            content = '{"summary":"ok"}'
+            usage_metadata = {"input_tokens": 17, "output_tokens": 8}
+        class Model:
+            def invoke(self, messages):
+                self.messages = messages
+                return Response()
+        model = Model()
+        provider = LangChainBedrockProvider(environ=AWS_ENV, model=model)
+        self.assertEqual(provider.generate("analyst", prompt()), '{"summary":"ok"}')
+        self.assertEqual(model.messages[0].type, "system")
+        self.assertEqual(model.messages[1].type, "human")
+        self.assertEqual(provider.last_usage["input_tokens"], 17)
+        self.assertEqual(create_provider("aws_langchain").name, "aws-langchain")
+
+    def test_langchain_bedrock_failure_does_not_reveal_remote_body(self):
+        class Model:
+            def invoke(self, messages):
+                raise RuntimeError("secret-value-from-remote-body")
+        provider = LangChainBedrockProvider(environ=AWS_ENV, model=Model())
+        with self.assertRaises(ProviderError) as caught:
+            provider.generate("analyst", prompt())
+        self.assertNotIn("secret-value", str(caught.exception))
     def test_aws_failure_does_not_reveal_credentials_or_remote_body(self):
         class Client:
             def converse(self, **kwargs):

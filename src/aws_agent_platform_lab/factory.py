@@ -332,9 +332,9 @@ def _build_graph(checkpointer, provider=None):
 
 
 def service_from_environment(root, environ):
-    """Create the Factory selected by FACTORY_PROVIDER: fixtures (default), mock, aws or azure.
+    """Create the Factory selected by FACTORY_PROVIDER: fixtures (default), mock, aws, aws-langchain or azure.
 
-    Choosing aws or azure sends identity-filtered synthetic documents to that
+    Choosing aws, aws-langchain or azure sends identity-filtered synthetic documents to that
     provider; the provider's own configuration and credentials still apply.
     """
     name = str(environ.get("FACTORY_PROVIDER", "") or FIXTURES).strip().lower()
@@ -344,7 +344,7 @@ def service_from_environment(root, environ):
     from .providers import create_provider
     retriever = None
     knowledge_base = str(environ.get("BEDROCK_KNOWLEDGE_BASE_ID", "")).strip()
-    if name == "aws" and knowledge_base:
+    if name in {"aws", "aws-langchain", "aws_langchain"} and knowledge_base:
         # In AWS mode the documents come from the Knowledge Base, filtered by the verified scope.
         from .retrieval import BedrockRetriever
         retriever = BedrockRetriever(knowledge_base, str(environ.get("AWS_REGION", "")).strip())
