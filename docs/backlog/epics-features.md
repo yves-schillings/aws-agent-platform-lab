@@ -22,7 +22,7 @@ Cognito, Bedrock Converse, Knowledge Bases and S3 adapters and infrastructure de
 
 The target five-worker/four-gate Factory, generated-code sandbox, independent candidate validator and separate target application are not delivered by the current platform deployment.
 
-The selected code-first target uses LangGraph for Python orchestration, LangChain AWS `ChatBedrockConverse` for Bedrock, and the official MCP Python SDK for explicit tool nodes connecting to three company-owned MCP servers. A separate local increment now implements deterministic LangGraph roles, four simulated gates and SQLite checkpoints. LangChain AWS and remote company connectors remain unimplemented. This local progress refines EP-05 without satisfying its complete cloud acceptance criteria. See the [migration and qualification plan](../slides/30-langgraph-workflow-in-python.md) and [development evidence](../development-start.md).
+The selected code-first target uses LangGraph for Python orchestration, LangChain AWS `ChatBedrockConverse` for Bedrock, and the official MCP Python SDK for explicit tool nodes connecting to three company-owned MCP servers. A separate local increment now implements deterministic LangGraph roles, four simulated gates and SQLite checkpoints. LangChain AWS and remote company connectors remain unimplemented. This local progress refines EP-05 without satisfying its complete cloud acceptance criteria. See the [development evidence](../development-start.md).
 
 **Gate key:** G means Gate, a human approval checkpoint: **G1 Scope**, **G2 Design**, **G3 Quality**, **G4 Release**. G4 Release authorises deployment of the exact reviewed version.
 
