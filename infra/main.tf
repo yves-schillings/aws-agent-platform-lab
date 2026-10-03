@@ -432,6 +432,17 @@ resource "aws_iam_role_policy_attachment" "express" {
   role       = aws_iam_role.express.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSInfrastructureRoleforExpressGatewayServices"
 }
+resource "aws_iam_service_linked_role" "ecs_application_autoscaling" {
+  # Provision this before the first Express revision so its auto-scaling
+  # policy can be created without an IAM propagation race.
+  aws_service_name = "ecs.application-autoscaling.amazonaws.com"
+  lifecycle { ignore_changes = [description, tags, tags_all] }
+}
+resource "aws_iam_service_linked_role" "elastic_load_balancing" {
+  # The first Express revision creates an Application Load Balancer.
+  aws_service_name = "elasticloadbalancing.amazonaws.com"
+  lifecycle { ignore_changes = [description, tags, tags_all] }
+}
 resource "aws_ecs_express_gateway_service" "app" {
   count                   = var.enable_service ? 1 : 0
   cluster                 = aws_ecs_cluster.main.name
@@ -479,7 +490,9 @@ resource "aws_ecs_express_gateway_service" "app" {
       error_message = "The bootstrap image must belong to this lab's exact ECR repository."
     }
   }
-  depends_on = [aws_iam_role_policy.execution, aws_iam_role_policy.application, aws_iam_role_policy_attachment.express, aws_route_table_association.public]
+  depends_on = [aws_iam_role_policy.execution, aws_iam_role_policy.application,
+    aws_iam_role_policy_attachment.express, aws_iam_service_linked_role.ecs_application_autoscaling,
+  aws_iam_service_linked_role.elastic_load_balancing, aws_route_table_association.public]
 }
 
 resource "aws_cloudwatch_log_metric_filter" "errors" {
