@@ -126,20 +126,21 @@ The diagrams are licensed under [CC BY 4.0](docs/DIAGRAMS-LICENSE.md), with attr
   - Terraform has created the ECS/Fargate service, Amazon ECR, Cognito, DynamoDB, S3, KMS, Bedrock Knowledge Bases, S3 Vectors, IAM and CloudWatch resources in `eu-west-1`.
   - The demonstration endpoint is recorded in the operator's deployment outputs. It is temporary and may be removed after the demonstration.
   - `GET /healthz` returned `{"status":"ok"}` from the deployed service.
-  - The service runs the immutable ECR image digest `sha256:7e74d04c801bb393306dd0ffd4fcd2c3509e467d9efde662267b2f78875cd777`. The [UI deployment record](docs/factory-ui-deployment.md) identifies its source and observed service state.
+  - The five-role entry and Cognito callback routing update runs source revision `9c253682839f23d641ef701bb4ccc2af8d27a8e3` and immutable ECR digest `sha256:9c1df678ac059a0b8656f55a6c51a5e12a0d3ade1dcb9db44e3100c734dc745b`. ECS reported a successful deployment and two running tasks on that digest on 3 October 2026.
 
 - **Knowledge Base: verified**
-  - The reviewed synthetic corpus was uploaded and the Bedrock Knowledge Base ingestion completed without failures.
-  - A live Bedrock Knowledge Bases retrieval returned the indexed synthetic source.
+  - The first upload indexed a combined JSON file without per-document metadata. The authenticated Factory stopped because its mandatory source filter matched no documents.
+  - On 3 October 2026, the operator added nine synthetic text documents and nine matching metadata sidecars. Ingestion completed with nine newly indexed documents and zero failures.
+  - Repeating the Factory's application request through its retrieval adapter with the unchanged `alpha` / `internal` / `synthetic=true` filter returned five permitted passages. This API check is separate from completing an authenticated browser run.
 
-- **Cognito callback: configured**
+- **Cognito requester sign-in: observed**
   - The public HTTPS callback is configured in Cognito.
-  - A browser sign-in with an enrolled test user remains the next identity validation.
+  - The requester signed in and reached the five-role Factory page. The retained screenshot shows the synthetic request before launch.
 
 - **Cognito test identities: created**
   - The **requester test account** belongs to `demo-alpha`.
   - The **independent approver test account** belongs to `demo-alpha`, `factory-g1-approver`, `factory-g2-approver`, `factory-g3-approver` and `factory-g4-approver`.
-  - Both Cognito users are enabled and must complete their temporary-password sign-in before the browser workflow test.
+  - The requester completed sign-in. The independent approver's first sign-in and full four-gate journey still require verification.
 
 - **Still to validate in the live environment**
   - A Cognito-authenticated Factory run using a real model invocation.
