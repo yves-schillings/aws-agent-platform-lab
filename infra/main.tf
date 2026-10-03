@@ -26,6 +26,8 @@ locals {
     OTEL_SERVICE_NAME         = var.name_prefix
     FACTORY_ENABLED           = var.enable_factory ? "true" : "false"
     FACTORY_PROVIDER          = var.enable_factory ? var.factory_provider : "fixtures"
+    FACTORY_CHECKPOINTS_TABLE = aws_dynamodb_table.factory_checkpoints.name
+    FACTORY_RUNS_TABLE        = aws_dynamodb_table.factory_runs.name
     LAB_DATA_DIR              = "/app/artifacts/lab-data"
   }
 }
@@ -45,7 +47,7 @@ resource "terraform_data" "deployment_gate" {
       error_message = "The existing GitHub OIDC provider must belong to the selected account."
     }
     precondition {
-      condition     = length(setintersection(toset(keys(var.runtime_secret_arns)), toset(["LOCAL_DEMO_MODE", "PORT", "AWS_REGION", "BEDROCK_MODEL_ID", "BEDROCK_KNOWLEDGE_BASE_ID", "COGNITO_USER_POOL_ID", "COGNITO_CLIENT_ID", "COGNITO_ISSUER", "COGNITO_DOMAIN", "COGNITO_REDIRECT_URI", "ACCESS_POLICY_JSON", "ARTIFACT_BUCKET", "POC_TIMEOUT_SECONDS", "POC_MAX_ATTEMPTS", "POC_MAX_OUTPUT_TOKENS", "OTEL_SERVICE_NAME", "FACTORY_ENABLED", "FACTORY_PROVIDER", "LAB_DATA_DIR"]))) == 0
+      condition     = length(setintersection(toset(keys(var.runtime_secret_arns)), toset(["LOCAL_DEMO_MODE", "PORT", "AWS_REGION", "BEDROCK_MODEL_ID", "BEDROCK_KNOWLEDGE_BASE_ID", "COGNITO_USER_POOL_ID", "COGNITO_CLIENT_ID", "COGNITO_ISSUER", "COGNITO_DOMAIN", "COGNITO_REDIRECT_URI", "ACCESS_POLICY_JSON", "ARTIFACT_BUCKET", "POC_TIMEOUT_SECONDS", "POC_MAX_ATTEMPTS", "POC_MAX_OUTPUT_TOKENS", "OTEL_SERVICE_NAME", "FACTORY_ENABLED", "FACTORY_PROVIDER", "FACTORY_CHECKPOINTS_TABLE", "FACTORY_RUNS_TABLE", "LAB_DATA_DIR"]))) == 0
       error_message = "Secrets cannot override the application's identity, access policy or safety configuration."
     }
   }
@@ -137,6 +139,55 @@ resource "aws_s3_bucket_policy" "tls" {
     }]
   })
 }
+
+# Two Fargate application tasks cannot share a local SQLite file.  The Factory
+# stores LangGraph checkpoints and run ownership in these encrypted, shared
+# DynamoDB tables so either healthy task can resume a gate decision.
+resource "aws_dynamodb_table" "factory_checkpoints" {
+  name         = "${local.resource_prefix}-factory-checkpoints"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "PK"
+  range_key    = "SK"
+
+  attribute {
+    name = "PK"
+    type = "S"
+  }
+  attribute {
+    name = "SK"
+    type = "S"
+  }
+
+  server_side_encryption {
+    enabled     = true
+    kms_key_arn = aws_kms_key.data.arn
+  }
+  point_in_time_recovery { enabled = true }
+  ttl {
+    attribute_name = "ttl"
+    enabled        = true
+  }
+  depends_on = [terraform_data.deployment_gate]
+}
+
+resource "aws_dynamodb_table" "factory_runs" {
+  name         = "${local.resource_prefix}-factory-runs"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "run_id"
+
+  attribute {
+    name = "run_id"
+    type = "S"
+  }
+
+  server_side_encryption {
+    enabled     = true
+    kms_key_arn = aws_kms_key.data.arn
+  }
+  point_in_time_recovery { enabled = true }
+  depends_on = [terraform_data.deployment_gate]
+}
+
 resource "aws_s3vectors_vector_bucket" "main" {
   vector_bucket_name = "${local.resource_prefix}-vectors"
   force_destroy      = false
@@ -330,6 +381,7 @@ resource "aws_iam_role_policy" "application" {
   policy = jsonencode({ Version = "2012-10-17", Statement = [
     { Effect = "Allow", Action = ["bedrock:InvokeModel"], Resource = var.bedrock_inference_resource_arns },
     { Effect = "Allow", Action = ["bedrock:Retrieve"], Resource = aws_bedrockagent_knowledge_base.main.arn },
+    { Effect = "Allow", Action = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem", "dynamodb:Query", "dynamodb:BatchGetItem", "dynamodb:BatchWriteItem"], Resource = [aws_dynamodb_table.factory_checkpoints.arn, aws_dynamodb_table.factory_runs.arn] },
     # GetObject must distinguish a missing lease/state key (404) from denied
     # access (403). A GetObject request carries no ListObjects prefix condition.
     { Effect = "Allow", Action = ["s3:ListBucket"], Resource = aws_s3_bucket.data["artifacts"].arn },
