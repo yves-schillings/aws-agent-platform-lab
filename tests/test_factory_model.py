@@ -91,6 +91,27 @@ class ModelBackedFactoryTests(unittest.TestCase):
         self.assertTrue(reviewer_prompt["candidate"]["files"])
         self.assertIn("untrusted data", reviewer_prompt["instructions"])
 
+    def test_live_model_contract_uses_explicit_types_and_permitted_citations(self):
+        from jsonschema import Draft202012Validator
+        provider = RecordingProvider()
+        service = self.service(provider)
+        state = service.start_run(principal(), REQUEST)
+        for gate in GATES:
+            state = self.decide(service, state)
+        for role, prompt in provider.prompts:
+            schema = prompt["response_schema"]
+            Draft202012Validator.check_schema(schema)
+            output = {k: v for k, v in state["artifacts"][role].items()
+                      if k in schema["properties"]}
+            Draft202012Validator(schema).validate(output)
+            output["citations"] = ["OUTSIDE-THE-PERMITTED-SOURCES"]
+            self.assertFalse(Draft202012Validator(schema).is_valid(output))
+        analyst = provider.prompts[0][1]["response_schema"]
+        malformed = {"summary": "S", "requirements": "Prose instead of an array",
+                     "citations": provider.prompts[0][1]["documents"][:1]}
+        malformed["citations"] = [malformed["citations"][0]["id"]]
+        self.assertFalse(Draft202012Validator(analyst).is_valid(malformed))
+
     def test_each_company_sees_only_its_own_documents(self):
         provider = RecordingProvider()
         service = self.service(provider)
@@ -211,7 +232,11 @@ class CognitoFactoryWebTests(unittest.TestCase):
         self.assertTrue(any("separate Cognito-authenticated approver" in item for item in state["limitations"]))
         url = f"/api/factory/runs/{state['run_id']}/decision"
         for gate in GATES:
-            pending = state["pending_gate"]
+            review = self.client.get(url.removesuffix("/decision"), headers=self.bearer("approver-token"))
+            self.assertEqual(review.status_code, 200, review.text)
+            pending = review.json()["pending_gate"]
+            self.assertEqual(pending["gate"], gate)
+            self.assertEqual(pending["artifact"], state["pending_gate"]["artifact"])
             result = self.client.post(url, headers=self.bearer("approver-token"), json={
                 "gate": gate, "artifact_hash": pending["artifact_hash"],
                 "decision": "approve", "reason": "Reviewed by the authorised approver."})
@@ -219,6 +244,21 @@ class CognitoFactoryWebTests(unittest.TestCase):
             state = result.json()
         self.assertEqual(state["status"], "release_ready")
         self.assertTrue(all(d["identity_verified"] and not d["simulated"] for d in state["decisions"]))
+        self.assertEqual(self.client.get(url.removesuffix("/decision"), headers=self.bearer("alpha-token")).json()["status"], "release_ready")
+
+    def test_review_read_requires_the_pending_gate_and_exact_source_scope(self):
+        from unittest.mock import patch
+        state = self.client.post("/api/factory/runs", headers=self.bearer("alpha-token"),
+                                 json={"request_text": REQUEST, "synthetic": True}).json()
+        run = f"/api/factory/runs/{state['run_id']}"
+        for principal in [
+            Principal("another-requester", ("demo-alpha",), "alpha", "internal"),
+            Principal("later-approver", ("factory-g2-approver",), "alpha", "internal"),
+            Principal("other-company", ("factory-g1-approver",), "beta", "internal"),
+            Principal("other-scope", ("factory-g1-approver",), "alpha", "restricted"),
+        ]:
+            with self.subTest(principal=principal.subject), patch.object(FakeVerifier, "verify", return_value=principal):
+                self.assertEqual(self.client.get(run, headers=self.bearer("approver-token")).status_code, 404)
 
     def test_missing_or_invalid_token_is_refused(self):
         body = {"request_text": REQUEST, "synthetic": True}

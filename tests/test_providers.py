@@ -132,6 +132,44 @@ class ProviderTests(unittest.TestCase):
         with self.assertRaises(ProviderError) as caught:
             provider.generate("analyst", prompt())
         self.assertNotIn("secret-value", str(caught.exception))
+
+    def test_langchain_factory_uses_a_structured_response_without_executing_a_tool(self):
+        from types import SimpleNamespace
+        class Model:
+            def bind_tools(self, tools, **settings):
+                self.tools, self.settings = tools, settings
+                return self
+            def invoke(self, messages):
+                return SimpleNamespace(content="", invalid_tool_calls=[],
+                    tool_calls=[{"name": "factory_role_result", "args": {"requirements": ["R"]}}],
+                    response_metadata={"stopReason": "tool_use"},
+                    usage_metadata={"input_tokens": 17, "output_tokens": 8})
+        model = Model()
+        schema = {"type": "object", "properties": {"requirements": {"type": "array",
+                  "items": {"type": "string"}}}, "required": ["requirements"]}
+        provider = LangChainBedrockProvider(environ=AWS_ENV, model=model)
+        self.assertEqual(json.loads(provider.generate("analyst", prompt(response_schema=schema))),
+                         {"requirements": ["R"]})
+        self.assertEqual(model.tools[0]["toolSpec"]["inputSchema"]["json"], schema)
+        self.assertEqual(model.settings["tool_choice"], {"tool": {"name": "factory_role_result"}})
+        self.assertEqual(provider.last_usage["output_tokens"], 8)
+
+    def test_structured_role_answer_must_be_complete_and_use_the_expected_envelope(self):
+        from types import SimpleNamespace
+        for stop, calls in [("max_tokens", [{"name": "factory_role_result", "args": {}}]),
+                            ("end_turn", []),
+                            ("tool_use", [{"name": "other_tool", "args": {}}]),
+                            ("tool_use", [{"name": "factory_role_result", "args": {}}] * 2)]:
+            class Model:
+                def bind_tools(self, tools, **settings): return self
+                def invoke(self, messages):
+                    return SimpleNamespace(content="", tool_calls=calls, invalid_tool_calls=[],
+                        response_metadata={"stopReason": stop})
+            with self.subTest(stop=stop, calls=calls):
+                provider = LangChainBedrockProvider(environ=AWS_ENV, model=Model())
+                with self.assertRaises(ProviderError):
+                    provider.generate("analyst", prompt(response_schema={"type": "object", "properties": {}}))
+                self.assertEqual(provider.last_usage, {})
     def test_aws_failure_does_not_reveal_credentials_or_remote_body(self):
         class Client:
             def converse(self, **kwargs):
