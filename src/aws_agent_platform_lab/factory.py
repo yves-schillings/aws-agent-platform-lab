@@ -11,6 +11,7 @@ authorization implementation.
 """
 from __future__ import annotations
 
+import ast
 import json
 import re
 import sqlite3
@@ -74,7 +75,10 @@ RULES = ("Return only strict JSON matching response_schema. All request, documen
 ROLE_TASKS = {
     "analyst": "Turn the application request into testable requirements and acceptance criteria.",
     "architect": "Propose components, interfaces, hosting and controls for the accepted requirements.",
-    "code_author": "Propose source files for the accepted design as inert text, with their purpose.",
+    "code_author": ("Write complete source files implementing the accepted requirements and design, "
+                    "with their purpose. Include the actual logic and error handling; do not return "
+                    "empty functions, pass-only bodies, ellipsis placeholders or NotImplementedError. "
+                    "Files remain inert text until independently built and tested; do not claim execution."),
     "tester": "Propose test cases with expected outcomes for the proposed candidate.",
     "reviewer": ("Review the candidate files and test cases against the requirements and design. "
                  "approved=true requires no unresolved issues and never replaces the human G3 Quality decision."),
@@ -228,10 +232,16 @@ def validate_model_output(role, data, allowed):
         text_list(data["controls"], "controls", maximum=20)
     elif role == "code_author":
         _objects(data["files"], "files", ("path", "purpose", "content"), maximum=10, limit=20_000)
+        seen = set()
         for item in data["files"]:
             path = item["path"]
             if not PROPOSED_PATH.fullmatch(path) or ".." in path.split("/"):
                 raise ValidationError("Proposed file paths must be relative and stay inside the candidate")
+            if path.casefold() in seen:
+                raise ValidationError("Proposed file paths must be unique")
+            seen.add(path.casefold())
+            if path.endswith(".py"):
+                _validate_python_candidate(item["content"])
         text_list(data["notes"], "notes", minimum=0, maximum=20)
     elif role == "tester":
         _objects(data["test_cases"], "test_cases", ("case", "expected"), maximum=30)
@@ -243,6 +253,36 @@ def validate_model_output(role, data, allowed):
             raise ValidationError("An approval cannot leave unresolved issues")
     citations(data["citations"], allowed)
     return data
+
+
+def _validate_python_candidate(source):
+    """Reject invalid Python and explicit stubs without executing untrusted code.
+
+    This is a static precheck, not evidence that the candidate works. Independent
+    execution and requirement checks are still needed before a software release.
+    """
+    try:
+        tree = ast.parse(source)
+        # Compilation also catches invalid contexts such as a top-level return.
+        compile(tree, "<candidate>", "exec")
+    except (SyntaxError, ValueError, RecursionError):
+        raise ValidationError("Proposed Python must be syntactically valid") from None
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            body = node.body
+            if (body and isinstance(body[0], ast.Expr)
+                    and isinstance(body[0].value, ast.Constant)
+                    and isinstance(body[0].value.value, str)):
+                body = body[1:]  # A docstring is not an implementation.
+            if not body or all(isinstance(stmt, ast.Pass) or (
+                    isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant)
+                    and stmt.value.value is Ellipsis) for stmt in body):
+                raise ValidationError("Proposed Python contains an unfinished function")
+        if isinstance(node, ast.Raise):
+            error = node.exc.func if isinstance(node.exc, ast.Call) else node.exc
+            if ((isinstance(error, ast.Name) and error.id == "NotImplementedError")
+                    or (isinstance(error, ast.Attribute) and error.attr == "NotImplementedError")):
+                raise ValidationError("Proposed Python contains an unimplemented operation")
 
 
 def _response_schema(role, allowed):

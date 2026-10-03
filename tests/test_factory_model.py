@@ -164,6 +164,47 @@ class ModelBackedFactoryTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             validate_model_output("reviewer", data, {"ALPHA-OPS"})
 
+    def test_incomplete_candidate_stops_before_quality_review(self):
+        # Reproduce the live defect: a schema-valid, cited file was only a stub.
+        answer = json.dumps({"files": [{"path": "app.py", "purpose": "Search",
+                                       "content": "def search(scope, query, as_of):\n    pass\n"}],
+                             "notes": [], "citations": ["ALPHA-POLICY"]})
+        service = self.service(ScriptedProvider("code_author", answer=answer))
+        state = service.start_run(principal(), REQUEST)
+        state = self.decide(service, state)  # G1 -> G2
+        state = self.decide(service, state)  # G2 -> rejected candidate
+        self.assertEqual(state["status"], "failed")
+        self.assertIsNone(state["pending_gate"])
+        self.assertEqual(state["artifacts"]["code_author"]["error_type"], "ValidationError")
+        self.assertNotIn("tester", state["artifacts"])
+        self.assertNotIn("reviewer", state["artifacts"])
+        self.assertEqual([decision["gate"] for decision in state["decisions"]], ["G1", "G2"])
+
+    def test_invalid_python_and_explicit_stubs_are_rejected(self):
+        for source in ("def search(:", "return 42", "def search():\n    pass\n",
+                       'async def search():\n    """Search records."""\n    ...\n',
+                       "def search():\n    raise NotImplementedError\n",
+                       "def search():\n    raise NotImplementedError('TODO')\n"):
+            with self.subTest(source=source), self.assertRaises(ValidationError):
+                validate_model_output("code_author", {"files": [{"path": "app.py", "purpose": "Search",
+                    "content": source}], "notes": [], "citations": ["ALPHA-POLICY"]}, {"ALPHA-POLICY"})
+
+    def test_static_precheck_preserves_real_logic_without_executing_it(self):
+        source = ("raise RuntimeError('must never execute candidate code')\n"
+                  "def search(record):\n"
+                  "    try:\n        return record['id']\n"
+                  "    except KeyError:\n        pass\n"
+                  "    return None\n")
+        data = {"files": [{"path": "app.py", "purpose": "Search", "content": source}],
+                "notes": [], "citations": ["ALPHA-POLICY"]}
+        self.assertIs(validate_model_output("code_author", data, {"ALPHA-POLICY"}), data)
+
+    def test_candidate_cannot_shadow_a_file_with_a_duplicate_path(self):
+        data = {"files": [{"path": path, "purpose": "Search", "content": "def search():\n    return []\n"}
+                          for path in ("app.py", "APP.py")], "notes": [], "citations": ["ALPHA-POLICY"]}
+        with self.assertRaises(ValidationError):
+            validate_model_output("code_author", data, {"ALPHA-POLICY"})
+
     def test_environment_selects_fixtures_by_default_and_mock_on_request(self):
         fixtures = service_from_environment(self.root / "a", {})
         self.addCleanup(fixtures.close)

@@ -113,6 +113,7 @@ The diagrams are licensed under [CC BY 4.0](docs/DIAGRAMS-LICENSE.md), with attr
 - **Application layer: model and retrieval controls**
   - `FACTORY_PROVIDER=mock`, `aws`, `aws-langchain` and `azure` select the corresponding bounded provider adapter.
   - Python keeps a response only after role-schema validation and permitted-source citation validation.
+  - Candidate Python is parsed and compiled without execution. Invalid syntax, pass-only or ellipsis-only functions, explicit `NotImplementedError` stubs and duplicate file paths stop the run before G3. These static checks do not establish functional correctness.
   - The Factory never executes generated code or deploys a generated application.
   - Bedrock Knowledge Bases retrieval applies a server-owned company/project filter and rechecks each returned passage.
 
@@ -134,7 +135,7 @@ The diagrams are licensed under [CC BY 4.0](docs/DIAGRAMS-LICENSE.md), with attr
   - Terraform has created the ECS/Fargate service, Amazon ECR, Cognito, DynamoDB, S3, KMS, Bedrock Knowledge Bases, S3 Vectors, IAM and CloudWatch resources in `eu-west-1`.
   - The demonstration endpoint is recorded in the operator's deployment outputs. It is temporary and may be removed after the demonstration.
   - `GET /healthz` returned `{"status":"ok"}` from the deployed service.
-  - The five-role entry and Cognito callback routing update runs source revision `9c253682839f23d641ef701bb4ccc2af8d27a8e3` and immutable ECR digest `sha256:9c1df678ac059a0b8656f55a6c51a5e12a0d3ade1dcb9db44e3100c734dc745b`. ECS reported a successful deployment and two running tasks on that digest on 3 October 2026.
+  - The recorded service revision is `af50d6261821f35dd891e7bfb0524438b47171c0`, with immutable ECR digest `sha256:b5ca2821a62e96201d15adc2f0b9a669fef31b25b96991661718f7ef354f1f6d`. ECS reported a successful deployment and two running tasks on that digest on 3 October 2026. Subsequent source changes, including the static candidate precheck, require their own deployment record.
 
 - **Knowledge Base: verified**
   - The first upload indexed a combined JSON file without per-document metadata. The authenticated Factory stopped because its mandatory source filter matched no documents.
@@ -148,11 +149,12 @@ The diagrams are licensed under [CC BY 4.0](docs/DIAGRAMS-LICENSE.md), with attr
 - **Cognito test identities: created**
   - The **requester test account** belongs to `demo-alpha`.
   - The **independent approver test account** belongs to `demo-alpha`, `factory-g1-approver`, `factory-g2-approver`, `factory-g3-approver` and `factory-g4-approver`.
-  - The requester completed sign-in. The independent approver's first sign-in and full four-gate journey still require verification.
+  - On 3 October 2026, the requester and a distinct approver completed the authenticated five-role run `dea0a91ce98f4fce8f3225eb201a8a5c`. The same approver decided all four gates after opening the run and exact artifact hash. Requester self-approval was refused and requester resumption of the completed run succeeded.
+  - The five real Bedrock responses retained permitted citations and measured usage of 11,957 input tokens and 1,074 output tokens. The four verified decision receipts tested workflow controls; they did not certify candidate execution or a generated application deployment.
 
 - **Still to validate in the live environment**
-  - A Cognito-authenticated Factory run using a real model invocation.
-  - Separate approver identities completing the four Factory gates.
+  - Independent build and execution of candidate code, with protected requirement tests, before approving a real application release.
+  - Renewal of long-running DynamoDB leases and forced task-replacement recovery.
   - GitHub Actions deployment through the configured `aws-lab` environment.
 
 ### Deployment commands and scripts
@@ -183,7 +185,7 @@ The lab now includes a FastAPI/browser application and a command-line workflow. 
 
 The local browser mode uses deterministic mock responses, a synthetic corpus, two simulated identities and a bounded stdio Model Context Protocol (MCP) checklist tool. Run/source access checks, exact-artifact decisions, persistence, safe traces and failure paths are exercised locally. The interface visibly labels simulated inference and identities.
 
-The AWS code path includes Cognito access-token verification, server-filtered Bedrock Knowledge Bases retrieval, Bedrock Converse and S3 artifact storage with conditional writes. Terraform, a container definition and GitHub workflow files define the delivery path. **The public service health check and a live Knowledge Bases retrieval are verified in the authorised AWS account.** Requester browser sign-in is recorded. The authenticated Factory model run and distinct approver decisions still require their own evidence; local tests and fake SDK transports do not establish those outcomes.
+The AWS code path includes Cognito access-token verification, server-filtered Bedrock Knowledge Bases retrieval, Bedrock Converse and S3 artifact storage with conditional writes. Terraform, a container definition and GitHub workflow files define the delivery path. **The public service health check, live Knowledge Bases retrieval and two-account Factory browser journey are verified in the authorised AWS account.** The recorded run exercised all five model roles and four authenticated gates. Candidate execution and generated-application deployment need separate implementation and evidence; the browser journey does not establish those outcomes.
 
 A legacy Azure adapter remains for provider-contract tests; the web service and deployment target AWS. See [the architecture](docs/architecture.md), [authentication boundary](docs/authentication.md) and [implementation backlog](docs/implementation-backlog.md).
 
@@ -235,7 +237,7 @@ Configure an authorised AWS role or profile, region and available Converse-compa
 
 ## What the workflow proves
 
-1. **Retrieval:** local browser retrieval applies identity scope before lexical ranking. AWS retrieval sends a server-owned tenant/access filter to Knowledge Bases and checks returned source metadata again. The live S3 Vectors index and synthetic retrieval are verified. The authenticated tenant-filter test remains part of the Cognito Factory run. The original CLI corpus flags are declarations, not identity controls or anonymisation.
+1. **Retrieval:** local browser retrieval applies identity scope before lexical ranking. AWS retrieval sends a server-owned tenant/access filter to Knowledge Bases and checks returned source metadata again. The live S3 Vectors index and synthetic retrieval are verified. The authenticated Factory run retained permitted citations; live cross-company denial tests remain separate. The original CLI corpus flags are declarations, not identity controls or anonymisation.
 2. **Analysis and design:** agents produce structured JSON. Required fields and cited source identifiers are validated.
 3. **Review and correction:** the reviewer can request changes. Two corrections after the first draft give at most seven agent calls. Distinct roles do not guarantee independent judgement or truth.
 4. **Human decision:** a favourable reviewer result pauses the run. It never authorises publication by itself.
@@ -260,7 +262,7 @@ Unknown cloud cost is `null`, not zero. The mock provider reports simulated zero
 
 ## Next steps
 
-The [AWS architecture](docs/architecture.md) uses ECS Express Mode on Fargate for a FastAPI/browser container, Cognito verified by the API, Bedrock Converse, Bedrock Knowledge Bases backed by S3 Vectors, a local stdio MCP tool, ordinary S3 artifacts and CloudWatch logs with OpenTelemetry instrumentation. The infrastructure, public service health endpoint and Knowledge Bases retrieval are live. Requester browser sign-in is recorded; the authenticated Factory workflow and distinct approver decisions remain the next validation steps.
+The [AWS architecture](docs/architecture.md) uses ECS Express Mode on Fargate for a FastAPI/browser container, Cognito verified by the API, Bedrock Converse, Bedrock Knowledge Bases backed by S3 Vectors, a local stdio MCP tool, ordinary S3 artifacts and CloudWatch logs with OpenTelemetry instrumentation. The infrastructure, public service health endpoint and Knowledge Bases retrieval are live. The two-account authenticated Factory journey is recorded above; independently executing and deploying the generated application remains separate work.
 
 The [epic and feature backlog](docs/backlog/epics-features.md) organises the proposed delivery sequence into nine epics and 35 features; detailed items are not yet expanded. The existing [LAB technical issue specifications](docs/implementation-backlog.md) retain implementation acceptance detail and recorded evidence for Terraform, GitHub Actions with OpenID Connect, runbooks and workflow evaluation. These are complementary planning levels, not duplicate published GitHub issues; existing LAB identifiers remain unchanged.
 
