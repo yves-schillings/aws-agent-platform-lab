@@ -112,6 +112,7 @@ The diagrams are licensed under [CC BY 4.0](docs/DIAGRAMS-LICENSE.md), with attr
 
 - **Application layer: model and retrieval controls**
   - `FACTORY_PROVIDER=mock`, `aws`, `aws-langchain` and `azure` select the corresponding bounded provider adapter.
+  - [Azure connection guide](azure/README.md): `providers.py:AzureOpenAIProvider` uses `urllib.request` and an Azure model deployment. The runnable `scripts/check_azure_connection.py` validates configuration without a network call by default. The Azure Factory harness is local; a live AWS-to-Azure Factory integration remains separate work.
   - Python keeps a response only after role-schema validation and permitted-source citation validation.
   - Candidate Python is parsed and compiled without execution. Invalid syntax, pass-only or ellipsis-only functions, explicit `NotImplementedError` stubs and duplicate file paths stop the run before G3. These static checks do not establish functional correctness.
   - The Factory never executes generated code or deploys a generated application.
