@@ -1,0 +1,42 @@
+---
+config:
+  flowchart:
+    curve: linear
+    nodeSpacing: 10
+    rankSpacing: 10
+  themeVariables:
+    fontSize: 28px
+---
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	analyst(analyst)
+	architect(architect)
+	code_author(code_author)
+	tester(tester)
+	reviewer(reviewer)
+	G1(G1)
+	G2(G2)
+	G3(G3)
+	G4(G4)
+	__end__([<p>__end__</p>]):::last
+	G1 -. &nbsp;stop&nbsp; .-> __end__;
+	G1 -. &nbsp;continue&nbsp; .-> architect;
+	G2 -. &nbsp;stop&nbsp; .-> __end__;
+	G2 -. &nbsp;continue&nbsp; .-> code_author;
+	G3 -. &nbsp;continue&nbsp; .-> G4;
+	G3 -. &nbsp;stop&nbsp; .-> __end__;
+	__start__ --> analyst;
+	analyst -. &nbsp;continue&nbsp; .-> G1;
+	analyst -. &nbsp;stop&nbsp; .-> __end__;
+	architect -. &nbsp;continue&nbsp; .-> G2;
+	architect -. &nbsp;stop&nbsp; .-> __end__;
+	code_author -. &nbsp;stop&nbsp; .-> __end__;
+	code_author -. &nbsp;continue&nbsp; .-> tester;
+	reviewer -. &nbsp;continue&nbsp; .-> G3;
+	reviewer -. &nbsp;stop&nbsp; .-> __end__;
+	tester -. &nbsp;stop&nbsp; .-> __end__;
+	tester -. &nbsp;continue&nbsp; .-> reviewer;
+	G4 --> __end__;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc
