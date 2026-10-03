@@ -33,6 +33,7 @@ from .models import (MAX_MODEL_BYTES, ValidationError, canonical_bytes, citation
                      parse_json, sha256_bytes, text_field, text_list)
 from .services import ServiceError
 from .workflow import _usage as provider_usage
+from .factory_persistence import DynamoRunRegistry, RunLease
 
 
 GATES = {"G1": "Scope", "G2": "Design", "G3": "Quality", "G4": "Release"}
@@ -444,97 +445,6 @@ def service_from_environment(root, environ):
                           verified_identities=False)
 
 
-class DynamoRunRegistry:
-    """Shared run ownership and per-run lease for the multi-task AWS Factory.
-
-    LangGraph checkpoints are in a separate DynamoDB table.  This table protects
-    the immutable run scope and makes a gate decision mutually exclusive across
-    Fargate tasks.  A lease is deliberately short and is released after every
-    operation; an interrupted task cannot hold a run indefinitely.
-    """
-
-    _lock_suffix = "#lock"
-
-    def __init__(self, table_name, *, region_name=None, client=None, lease_seconds=45):
-        if not isinstance(table_name, str) or not table_name:
-            raise ValueError("A DynamoDB Factory runs table is required")
-        if client is None:
-            import boto3
-            client = boto3.client("dynamodb", region_name=region_name)
-        self.client = client
-        self.table_name = table_name
-        self.lease_seconds = lease_seconds
-
-    @staticmethod
-    def _decode(item):
-        return {key: value.get("S") for key, value in item.items()}
-
-    @staticmethod
-    def _is_conditional_failure(error):
-        response = getattr(error, "response", {})
-        return response.get("Error", {}).get("Code") == "ConditionalCheckFailedException"
-
-    def create(self, run_id, identity):
-        item = {"run_id": {"S": run_id},
-                **{key: {"S": identity[key]} for key in ("owner", "tenant", "access_level",
-                                                            "company_id", "project_id")}}
-        try:
-            self.client.put_item(TableName=self.table_name, Item=item,
-                                 ConditionExpression="attribute_not_exists(run_id)")
-        except Exception as exc:
-            raise ServiceError("Factory run state is temporarily unavailable", 409) from exc
-
-    def get(self, run_id):
-        try:
-            response = self.client.get_item(TableName=self.table_name,
-                                            Key={"run_id": {"S": run_id}},
-                                            ConsistentRead=True)
-        except Exception as exc:
-            raise ServiceError("Factory run state is temporarily unavailable", 409) from exc
-        item = response.get("Item")
-        return self._decode(item) if item else None
-
-    @contextmanager
-    def locked(self, run_id):
-        if not isinstance(run_id, str) or not re.fullmatch(r"[a-f0-9]{32}", run_id):
-            raise ServiceError("Factory run not found", 404)
-        lock_id = run_id + self._lock_suffix
-        token = uuid.uuid4().hex
-        deadline = time.monotonic() + 30
-        acquired = False
-        while time.monotonic() < deadline:
-            now = int(time.time())
-            try:
-                self.client.update_item(
-                    TableName=self.table_name, Key={"run_id": {"S": lock_id}},
-                    UpdateExpression="SET lease_owner = :owner, lease_expires = :expires",
-                    ConditionExpression=("attribute_not_exists(lease_expires) OR lease_expires < :now "
-                                         "OR lease_owner = :owner"),
-                    ExpressionAttributeValues={":owner": {"S": token}, ":expires": {"N": str(now + self.lease_seconds)},
-                                               ":now": {"N": str(now)}})
-                acquired = True
-                break
-            except Exception as exc:
-                # A conditional failure means another task owns the short
-                # lease.  Network/IAM/table errors are not contention and must
-                # fail promptly rather than being misreported as a busy run.
-                if not self._is_conditional_failure(exc):
-                    raise ServiceError("Factory run state is temporarily unavailable", 503) from exc
-                time.sleep(0.05)
-        if not acquired:
-            raise ServiceError("Factory run is busy; retry the request", 409)
-        try:
-            yield self
-        finally:
-            try:
-                self.client.delete_item(TableName=self.table_name, Key={"run_id": {"S": lock_id}},
-                                        ConditionExpression="lease_owner = :owner",
-                                        ExpressionAttributeValues={":owner": {"S": token}})
-            except Exception:
-                # The expiry makes a failed best-effort release recoverable.
-                pass
-
-
 class FactoryService:
     """Factory service with local SQLite or shared DynamoDB persistence.
 
@@ -601,7 +511,8 @@ class FactoryService:
         """Serialize local work or lease one AWS run while advancing checkpoints."""
         if self._registry is not None:
             with self._registry.locked(run_id) as registry:
-                yield registry
+                with tracing_context(enabled=False):
+                    yield registry
             return
         with self._mutex:
             if self._closed:
@@ -621,6 +532,12 @@ class FactoryService:
                 raise
             finally:
                 registry.close()
+
+    def _operation_graph(self, registry):
+        """Bind each AWS operation to its own lease without mutating shared state."""
+        if isinstance(registry, RunLease):
+            return _build_graph(registry.fence_saver(self._saver), self._provider)
+        return self._graph
 
     def _identity(self, principal):
         """Accept a Cognito-verified principal or a supported fixture; derive immutable ownership.
@@ -676,7 +593,7 @@ class FactoryService:
         if (row is None or any(row[key] != identity[key] for key in scope_keys)
                 or (require_owner and row["owner"] != identity["owner"])):
             raise ServiceError("Factory run not found", 404)
-        snapshot = self._graph.get_state(self._config(run_id))
+        snapshot = self._operation_graph(registry).get_state(self._config(run_id))
         state = snapshot.values
         if (not state or state.get("run_id") != run_id
                 or any(state.get(key) != identity[key] for key in scope_keys)
@@ -739,7 +656,7 @@ class FactoryService:
                 registry.execute("INSERT INTO runs VALUES (?, ?, ?, ?, ?, ?)",
                     (run_id, identity["owner"], identity["tenant"], identity["access_level"],
                      identity["company_id"], identity["project_id"]))
-                self._graph.invoke({"schema_version": 1, "run_id": run_id, **identity,
+                self._operation_graph(registry).invoke({"schema_version": 1, "run_id": run_id, **identity,
                     "request_text": request, "provider": self._provider_name, "sources": sources,
                     "identity_verified": principal.simulated is False,
                     "status": "running", "artifacts": {},
@@ -749,7 +666,7 @@ class FactoryService:
                     require_owner=getattr(principal, "simulated", None) is True))
         self._registry.create(run_id, identity)
         with self._locked(run_id) as registry:
-            self._graph.invoke({"schema_version": 1, "run_id": run_id, **identity,
+            self._operation_graph(registry).invoke({"schema_version": 1, "run_id": run_id, **identity,
                 "request_text": request, "provider": self._provider_name, "sources": sources,
                 "identity_verified": principal.simulated is False,
                 "status": "running", "artifacts": {},
@@ -784,7 +701,7 @@ class FactoryService:
     def decide_run(self, principal, run_id, gate, artifact_hash, decision, reason):
         """Validate an authorised gate approver and exact artifact hash under the shared lock.
 
-        The receipt is explicitly simulated. Resuming G4 records release readiness;
+        Verified identities produce real decision receipts. Resuming G4 records release readiness;
         it never executes or deploys generated code.
         """
         identity = self._identity(principal)
@@ -814,7 +731,7 @@ class FactoryService:
                 "simulated": principal.simulated is not False,
                 "identity_verified": principal.simulated is False,
                 "decided_at": datetime.now(timezone.utc).isoformat()}
-            self._graph.invoke(Command(resume=receipt), self._config(run_id), durability="sync")
+            self._operation_graph(registry).invoke(Command(resume=receipt), self._config(run_id), durability="sync")
             return self._public(self._read(
                 registry, identity, run_id,
                 require_owner=getattr(principal, "simulated", None) is True))
