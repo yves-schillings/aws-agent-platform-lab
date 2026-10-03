@@ -413,7 +413,7 @@ resource "aws_iam_role_policy" "application" {
   policy = jsonencode({ Version = "2012-10-17", Statement = [
     { Effect = "Allow", Action = ["bedrock:InvokeModel"], Resource = var.bedrock_inference_resource_arns },
     { Effect = "Allow", Action = ["bedrock:Retrieve"], Resource = aws_bedrockagent_knowledge_base.main.arn },
-    { Effect = "Allow", Action = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem", "dynamodb:Query", "dynamodb:BatchGetItem", "dynamodb:BatchWriteItem"], Resource = [aws_dynamodb_table.factory_checkpoints.arn, aws_dynamodb_table.factory_runs.arn] },
+    { Effect = "Allow", Action = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem", "dynamodb:Query", "dynamodb:BatchGetItem", "dynamodb:BatchWriteItem", "dynamodb:ConditionCheckItem"], Resource = [aws_dynamodb_table.factory_checkpoints.arn, aws_dynamodb_table.factory_runs.arn] },
     # GetObject must distinguish a missing lease/state key (404) from denied
     # access (403). A GetObject request carries no ListObjects prefix condition.
     { Effect = "Allow", Action = ["s3:ListBucket"], Resource = aws_s3_bucket.data["artifacts"].arn },

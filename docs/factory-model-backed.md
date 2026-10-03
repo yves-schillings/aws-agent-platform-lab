@@ -33,9 +33,22 @@ Terraform: `enable_factory = true` sets `FACTORY_ENABLED=true`, `FACTORY_PROVIDE
 
 - **Local persistence:** offline development uses SQLite checkpoints.
 - **AWS persistence:** the configured Factory uses shared DynamoDB checkpoints and a run registry for ownership and per-run leases. Both Fargate tasks can access the same waiting run. Live recovery and concurrent-decision behavior still require retained acceptance evidence.
+  The lease is renewed every 15 seconds during a 45-second ownership window.
+  Each checkpoint write includes an atomic condition that the operation still
+  owns an unexpired lease. A displaced task cannot write with its old token.
+  `factory_persistence.py` owns this logic; the LangGraph saver is cloned per
+  operation, without changing the shared saver's client. The application role
+  needs `dynamodb:ConditionCheckItem` on the runs table in addition to checkpoint
+  writes. This does not guarantee exactly-once inference or solve HTTP timeouts.
 - **Browser access:** `/factory` supports both local mode and enabled AWS mode. AWS requests use Cognito authentication. Page availability does not establish successful sign-in or model execution.
 - Choose `aws` for the direct Boto3 Converse adapter or `aws-langchain` for `ChatBedrockConverse`. Both use the configured AWS region, model, profile and bounded timeout settings.
 
 ## Tests
 
 `tests/test_factory_model.py` covers: five model-backed roles through four gates, per-company document isolation, refusal before any model call, invalid JSON, out-of-scope citations, sanitized provider errors, unsafe file paths, reviewer approvals with open issues, environment selection, and the Cognito HTTP path (valid token, missing or forged token, cross-user isolation, run-owner denial, wrong-gate-approver denial, and routes disabled unless enabled).
+
+Install `requirements-test.txt` for the offline suite. `test_factory_persistence.py`
+uses Moto to emulate DynamoDB conditions and the pinned AWS LangGraph saver.
+It checks renewal beyond the initial expiry, ownership replacement, expiry,
+renewal failure, and requester/approver resumption on two service instances.
+These emulator tests do not replace a live ECS task-replacement exercise.
