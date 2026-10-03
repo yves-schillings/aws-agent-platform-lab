@@ -34,7 +34,7 @@ The delivery sequence is AWS first: deploy and verify this Bedrock implementatio
 - **Installed-container check:** [`scripts/container_smoke.py`](scripts/container_smoke.py) passed inside the local container. It checked health, installed browser files, explicit offline authentication configuration, retrieval, evidence and arrival at a human approval gate in the baseline demonstration.
 - **Factory checks:** Six tests in [`tests/test_factory_web.py`](tests/test_factory_web.py) passed for the four-gate journey, required identity, company separation, rejected authority injection, rejection behaviour and browser assets. Fifteen baseline tests in [`tests/test_web.py`](tests/test_web.py) also passed.
 - **Reading the capture:** The running `secloudis-factory-review-f777ead` container below is the local verification copy. Its CPU and memory figures describe the development computer's Docker environment. The two deployed application copies run on Fargate.
-- **Finding the image:** GitHub stores the Dockerfile, dependencies and [image build workflow](.github/workflows/deploy.yml). The built application image is stored in the private ECR repository `aws-agent-lab`, tagged with source revision `f777eadc9f0c95e3b34633ca021a6f779d1838de`. It is not published in GitHub Packages. Its deployed digest is recorded in the [deployment verification](docs/factory-ui-deployment.md).
+- **Finding the image:** GitHub stores the Dockerfile, dependencies and [image build workflow](.github/workflows/deploy.yml). The current AWS application image is stored in the private ECR repository `aws-agent-lab`, tagged with source revision `9c253682839f23d641ef701bb4ccc2af8d27a8e3`. It is not published in GitHub Packages. Its deployed digest is recorded in the [deployment verification](docs/factory-ui-deployment.md). The Docker Desktop capture records the earlier local `f777ead` verification image.
 - **Evidence boundary:** Local checks used synthetic data, simulated identities and offline responses. They do not replace the complete live Cognito and Bedrock test with a requester and a distinct approver.
 
 ![Docker Desktop showing the local verification container before the AWS image promotion](docs/images/docker-desktop-local-test.png)
@@ -44,9 +44,17 @@ The delivery sequence is AWS first: deploy and verify this Bedrock implementatio
 - **Authentication:** Selecting **Sign in** opens the real Amazon Cognito form shown below. Cognito verifies the user's credentials before returning to the application.
 - **Separate responsibilities:** The requester starts the run. A distinct, authorised approver reviews the four gates.
 - **Evidence boundary:** These screens establish that the entry page and sign-in form are available. They do not establish a completed authenticated model run.
-- **Earlier demonstration:** The root page `/` retains the original three-role workflow: Analyst, Designer and Reviewer. It links to the five-role Factory.
+- **Earlier demonstration:** The root page `/` redirects to the five-role Factory. The original three-role workflow remains explicitly available at `/demo`.
 
 ![Amazon Cognito sign-in form before entering an email or password](docs/images/cognito-sign-in.jpg)
+
+- **Requester sign-in recorded:** The following capture shows the authenticated Factory with its synthetic request ready to launch. The account identifier is hidden for publication.
+
+![Authenticated Factory before starting the workflow](docs/images/factory-authenticated-before-start.png)
+
+- **First launch stopped before G1:** The source index initially lacked per-document permission metadata. Nine scoped text documents and metadata sidecars were ingested successfully. The unchanged requester filter now returns five permitted passages. The authenticated retry and distinct approver decisions remain to be recorded; the [verification record](docs/factory-ui-deployment.md) describes the correction.
+
+![First authenticated launch stopped when no permitted reference documents were found](docs/images/factory-reference-error.png)
 
 ## Engineering documentation
 
@@ -175,7 +183,7 @@ The lab now includes a FastAPI/browser application and a command-line workflow. 
 
 The local browser mode uses deterministic mock responses, a synthetic corpus, two simulated identities and a bounded stdio Model Context Protocol (MCP) checklist tool. Run/source access checks, exact-artifact decisions, persistence, safe traces and failure paths are exercised locally. The interface visibly labels simulated inference and identities.
 
-The AWS code path includes Cognito access-token verification, server-filtered Bedrock Knowledge Bases retrieval, Bedrock Converse and S3 artifact storage with conditional writes. Terraform, a container definition and GitHub workflow files define the delivery path. **The public service health check and a live Knowledge Bases retrieval are verified in the authorised AWS account.** The Cognito browser sign-in and authenticated Factory model run remain separate checks; local tests and fake SDK transports do not establish those outcomes.
+The AWS code path includes Cognito access-token verification, server-filtered Bedrock Knowledge Bases retrieval, Bedrock Converse and S3 artifact storage with conditional writes. Terraform, a container definition and GitHub workflow files define the delivery path. **The public service health check and a live Knowledge Bases retrieval are verified in the authorised AWS account.** Requester browser sign-in is recorded. The authenticated Factory model run and distinct approver decisions still require their own evidence; local tests and fake SDK transports do not establish those outcomes.
 
 A legacy Azure adapter remains for provider-contract tests; the web service and deployment target AWS. See [the architecture](docs/architecture.md), [authentication boundary](docs/authentication.md) and [implementation backlog](docs/implementation-backlog.md).
 
@@ -252,7 +260,7 @@ Unknown cloud cost is `null`, not zero. The mock provider reports simulated zero
 
 ## Next steps
 
-The [AWS architecture](docs/architecture.md) uses ECS Express Mode on Fargate for a FastAPI/browser container, Cognito verified by the API, Bedrock Converse, Bedrock Knowledge Bases backed by S3 Vectors, a local stdio MCP tool, ordinary S3 artifacts and CloudWatch logs with OpenTelemetry instrumentation. The infrastructure, public service health endpoint and Knowledge Bases retrieval are live. Cognito browser sign-in and the authenticated Factory workflow remain the next validation steps.
+The [AWS architecture](docs/architecture.md) uses ECS Express Mode on Fargate for a FastAPI/browser container, Cognito verified by the API, Bedrock Converse, Bedrock Knowledge Bases backed by S3 Vectors, a local stdio MCP tool, ordinary S3 artifacts and CloudWatch logs with OpenTelemetry instrumentation. The infrastructure, public service health endpoint and Knowledge Bases retrieval are live. Requester browser sign-in is recorded; the authenticated Factory workflow and distinct approver decisions remain the next validation steps.
 
 The [epic and feature backlog](docs/backlog/epics-features.md) organises the proposed delivery sequence into nine epics and 35 features; detailed items are not yet expanded. The existing [LAB technical issue specifications](docs/implementation-backlog.md) retain implementation acceptance detail and recorded evidence for Terraform, GitHub Actions with OpenID Connect, runbooks and workflow evaluation. These are complementary planning levels, not duplicate published GitHub issues; existing LAB identifiers remain unchanged.
 
