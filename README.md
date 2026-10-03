@@ -1,5 +1,7 @@
 # AWS Agent Platform Lab
 
+- **Published article:** [Multi-Agentic Workflow on AWS — Secloudis](https://secloudis.com/multi-agentic-workflow-on-aws/).
+
 By **Yves Schillings, Secloudis** · [secloudis.com](https://secloudis.com/)
 
 A hands-on AWS agent platform lab using synthetic data, Amazon Bedrock and controlled multi-agent workflows.
