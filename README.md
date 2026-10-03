@@ -26,16 +26,59 @@ The repository is public. Source availability does not establish that an AWS ser
   - The implemented cloud adapter targets Bedrock Knowledge Bases with S3 Vectors; local mode uses lexical search.
   - The guide separates executable offline checks from the live ingestion and inference still to verify.
 
-## Current implementation
+## Architecture at a glance
 
-**Factory increment:** a separate LangGraph workflow runs Analyst, Architect, Code Author, Tester and Reviewer, pausing at **G1 Scope, G2 Design, G3 Quality and G4 Release**. SQLite checkpoints retain gate pauses across restarts. Tests cover rejection, stale versions, replay, cross-owner access and concurrent decisions.
+The editable Secloudis PowerPoint master remains outside this repository. These two PNG exports are documentation assets, licensed under [CC BY 4.0](docs/DIAGRAMS-LICENSE.md); the PowerPoint deck itself is not part of the source tree.
 
-- By default the five roles return fixed examples. With `FACTORY_PROVIDER=mock`, `aws`, `aws-langchain` or `azure`, each role calls that model adapter with the reference documents permitted for the caller; an answer is kept only if its JSON matches the role schema and its citations name those documents, otherwise the run stops as failed.
-- In AWS mode, `FACTORY_ENABLED=true` (Terraform `enable_factory = true`) exposes the Factory API to Cognito-verified users; documents then come from Bedrock Knowledge Bases.
-- Proposed code and tests remain inert text: nothing is built, executed or deployed, and G4 records a decision only. In AWS mode, each gate requires a separate Cognito-authenticated identity in its matching `factory-g1-approver` through `factory-g4-approver` group; the run owner cannot approve it. Durable cloud checkpoints and correction/resubmission remain future work. See [the model-backed Factory notes](docs/factory-model-backed.md).
+![System architecture: construct an application](docs/images/system-architecture.png)
 
-The `/factory` browser prototype is a temporary inspection harness. The conversational interface is still being selected; [Claude, Codex and Copilot Studio access](docs/conversational-access.md) describes the common MCP boundary and the human-approval requirements. MCP means Model Context Protocol. No connection to those clients or remote AWS Factory is claimed. See [development stages and preflight](docs/development-start.md).
+![Four interfaces reach the Python AI workflow](docs/images/four-interfaces.png)
 
+## MVP status
+
+### Implemented in the public source repository
+
+- **Business function: Factory workflow**
+  - Five Python/LangGraph roles: Analyst, Architect, Code Author, Tester and Reviewer.
+  - Four human gates: G1 Scope, G2 Design, G3 Quality and G4 Release.
+  - A rejection stops the run; an approval is bound to the exact SHA-256 artifact hash.
+
+- **Application layer: model and retrieval controls**
+  - `FACTORY_PROVIDER=mock`, `aws`, `aws-langchain` and `azure` select the corresponding bounded provider adapter.
+  - Python keeps a response only after role-schema validation and permitted-source citation validation.
+  - The Factory never executes generated code or deploys a generated application.
+  - Bedrock Knowledge Bases retrieval applies a server-owned company/project filter and rechecks each returned passage.
+
+- **Application layer: identity and approval controls**
+  - The local mode uses explicit simulated identities for development and tests.
+  - The AWS code path verifies Cognito access tokens and derives the caller scope on the server.
+  - The run owner cannot approve a production gate; a separate Cognito identity in the matching `factory-g1-approver` through `factory-g4-approver` group is required.
+  - The browser Factory page supports the local harness and the enabled AWS/Cognito path.
+
+- **Infrastructure layer: persistence and application runtime**
+  - Local development uses SQLite checkpoints only.
+  - The AWS deployment code configures shared DynamoDB checkpoints and a DynamoDB run registry, so either of two healthy Fargate tasks can resume the same waiting Factory run.
+  - Terraform defines ECS/Fargate, Application Load Balancer, ECR, Cognito, S3, KMS, IAM, CloudWatch, Bedrock Knowledge Bases and S3 Vectors.
+  - GitHub Actions and scripts build, publish, deploy, validate and roll back the container delivery path.
+
+### AWS deployment code is prepared; live execution is not yet claimed
+
+- **Terraform execution**
+  - The reviewed account-specific variables must be supplied.
+  - Terraform must create the resources in the authorised AWS account.
+
+- **Container delivery**
+  - The exact image digest must be published to Amazon ECR and selected by the ECS service.
+  - The running tasks must pass their health checks behind the Application Load Balancer.
+
+- **Identity, retrieval and inference**
+  - A real Cognito user must sign in through the configured callback URL.
+  - The synthetic corpus must be ingested into the Knowledge Base.
+  - A real Bedrock response must be retrieved and recorded with its permitted citations and usage evidence.
+
+- **Publication evidence**
+  - The Secloudis article will include the live Cognito, Bedrock, Knowledge Base, ECS/Fargate and GitHub Actions evidence after those checks succeed.
+  - Source availability alone does not prove a live AWS deployment.
 **Preserved baseline:** the following application remains available independently at `/` and through its original command-line interface.
 
 The lab now includes a FastAPI/browser application and a command-line workflow. An analyst, designer and reviewer run in sequence, with at most two correction rounds before an explicit human decision. Approval is bound to the SHA-256 hash of the exact artifact.
@@ -61,7 +104,7 @@ $env:LOCAL_DEMO_MODE = 'true'
 
 Open [the local browser interface](http://127.0.0.1:8000). It binds only to loopback in local mode. [The local demonstration guide](docs/local-demo.md) explains the two synthetic workspaces, source viewer, evidence and decisions. Generated state uses the ignored `.lab-data` directory. On macOS/Linux use `python3.12`, `.venv/bin/python` and `export LOCAL_DEMO_MODE=true` for the equivalent commands.
 
-The optional [Factory inspection prototype](http://127.0.0.1:8000/factory) uses three separate simulated company identities and the same ignored data root. Set `FACTORY_PROVIDER=mock` to exercise the model-backed path offline. Outside local mode the Factory API exists only when `FACTORY_ENABLED=true`, and the browser page stays local. These fixtures do not implement real company federation or cross-company sharing.
+The [Factory browser page](http://127.0.0.1:8000/factory) supports three separate simulated local identities and the same ignored data root. Set `FACTORY_PROVIDER=mock` to exercise the model-backed path offline. In AWS mode it is exposed only when `FACTORY_ENABLED=true`, authenticates with Cognito, and uses the server-owned identity scope. Multi-company federation, cross-company grants and remote MCP/OAuth clients are outside this MVP.
 
 `requirements.txt` pins the dependency versions used for verification. The core CLI mock path itself uses only the standard library; the full browser and authentication tests require the installed dependencies.
 

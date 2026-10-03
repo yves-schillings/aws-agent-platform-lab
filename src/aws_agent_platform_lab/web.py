@@ -65,8 +65,9 @@ def create_app(*, service: Any = None, environ: Mapping[str, str] | None = None,
                factory_service: Any = None) -> FastAPI:
     """Assemble HTTP routes, identity checks and application lifecycle dependencies.
 
-    The baseline AWS mode uses verified Cognito identities. Factory routes
-    remain local fixtures and cannot be enabled remotely by a request header.
+    The baseline and Factory AWS modes use verified Cognito identities.  The
+    Factory is exposed remotely only when the deployment configuration enables
+    it; a request header can never enable it.
     """
     env = dict(os.environ if environ is None else environ)
     configuration_error = None
@@ -230,20 +231,22 @@ def create_app(*, service: Any = None, environ: Mapping[str, str] | None = None,
 
     @app.get("/factory")
     def factory_index():
-        """Serve the local inspection harness without exposing it in AWS mode."""
-        if not local:
-            raise AuthError("The Factory increment is available in local demonstration mode only.", 404)
+        """Serve the Factory browser client only in local mode or an enabled AWS deployment."""
+        if not local and not factory_enabled:
+            raise AuthError("The Factory increment is not enabled for this deployment.", 404)
         return FileResponse(STATIC / "factory.html")
 
     @app.get("/api/factory/config")
     def factory_config():
-        """Describe the three simulated companies available to the local harness."""
-        if not local:
-            raise AuthError("The Factory increment is available in local demonstration mode only.", 404)
-        return {"simulated": True, "mode": "offline", "engine": "langgraph", "identities": [
-            {"id": key, "label": f"Company {number}"}
-            for number, key in enumerate(factory_identities, start=1)
-        ]}
+        """Describe the local simulated users or the enabled Cognito-backed Factory."""
+        if local:
+            return {"simulated": True, "mode": "offline", "engine": "langgraph", "identities": [
+                {"id": key, "label": f"Company {number}"}
+                for number, key in enumerate(factory_identities, start=1)
+            ]}
+        if not factory_enabled:
+            raise AuthError("The Factory increment is not enabled for this deployment.", 404)
+        return {"simulated": False, "mode": "aws", "engine": "langgraph", "identities": []}
 
     @app.post("/api/factory/runs", status_code=201)
     def factory_start(payload: FactoryInput, principal: Principal = Depends(factory_principal)):
