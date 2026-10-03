@@ -8,7 +8,6 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from aws_agent_platform_lab.models import canonical_bytes
 from aws_agent_platform_lab.providers import MockProvider
 from aws_agent_platform_lab.retrieval import LocalRetriever, BedrockRetriever, RetrievalError
 from aws_agent_platform_lab.services import LabService, ServiceError
@@ -87,7 +86,7 @@ class ServiceTests(unittest.TestCase):
     def test_rate_limit_and_safe_logs(self):
         self.service.hourly_limit = 1
         with self.assertLogs("aws_agent_platform_lab.events", level="INFO") as log:
-            state = self.run_done()
+            self.run_done()
         self.assertNotIn("ORCHID", "".join(log.output))
         self.assertNotIn("Prepare a synthetic", "".join(log.output))
         with self.assertRaises(ServiceError) as error:

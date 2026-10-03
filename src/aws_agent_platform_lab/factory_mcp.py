@@ -22,7 +22,7 @@ from mcp.types import ToolAnnotations
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from .auth import Principal
-from .factory import COMPANIES, GATES, LIMITATIONS, FactoryService, service_from_environment
+from .factory import COMPANIES, GATES, LIMITATIONS, service_from_environment
 from .services import ServiceError
 
 
