@@ -1,12 +1,17 @@
 # Deployment candidate only: these definitions create resources only when Terraform is explicitly applied.
 # Source objects, vector search and run artifacts are separate stores with separately scoped roles.
 locals {
-  account_arn         = "arn:aws:iam::${var.aws_account_id}:root"
-  resource_prefix     = "${var.name_prefix}-${var.aws_account_id}-${var.aws_region}"
-  embedding_arn       = "arn:aws:bedrock:${var.aws_region}::foundation-model/${var.embedding_model_id}"
-  express_service_arn = "arn:aws:ecs:${var.aws_region}:${var.aws_account_id}:service/${var.name_prefix}/${var.name_prefix}"
-  github_provider_arn = var.create_github_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : var.existing_github_oidc_provider_arn
-  callback_urls       = var.public_base_url == "" ? ["http://localhost:8000/auth/callback"] : ["${var.public_base_url}/auth/callback"]
+  account_arn     = "arn:aws:iam::${var.aws_account_id}:root"
+  resource_prefix = "${var.name_prefix}-${var.aws_account_id}-${var.aws_region}"
+  # Cognito and S3 Vectors reserve names containing "aws". Keep the workload
+  # prefix for AWS resources, but use provider-safe identifiers for these two
+  # globally named endpoints.
+  cognito_domain_prefix = "secloudis-agent-${var.aws_account_id}-${var.aws_region}"
+  vector_bucket_name    = "secloudis-agent-${var.aws_account_id}-${var.aws_region}-vectors"
+  embedding_arn         = "arn:aws:bedrock:${var.aws_region}::foundation-model/${var.embedding_model_id}"
+  express_service_arn   = "arn:aws:ecs:${var.aws_region}:${var.aws_account_id}:service/${var.name_prefix}/${var.name_prefix}"
+  github_provider_arn   = var.create_github_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : var.existing_github_oidc_provider_arn
+  callback_urls         = var.public_base_url == "" ? ["http://localhost:8000/auth/callback"] : ["${var.public_base_url}/auth/callback"]
   runtime_environment = {
     LOCAL_DEMO_MODE           = "false"
     PORT                      = "8000"
@@ -189,7 +194,7 @@ resource "aws_dynamodb_table" "factory_runs" {
 }
 
 resource "aws_s3vectors_vector_bucket" "main" {
-  vector_bucket_name = "${local.resource_prefix}-vectors"
+  vector_bucket_name = local.vector_bucket_name
   force_destroy      = false
   encryption_configuration {
     sse_type    = "aws:kms"
@@ -294,7 +299,7 @@ resource "aws_cognito_user_pool" "main" {
   depends_on = [terraform_data.deployment_gate]
 }
 resource "aws_cognito_user_pool_domain" "main" {
-  domain                = local.resource_prefix
+  domain                = local.cognito_domain_prefix
   user_pool_id          = aws_cognito_user_pool.main.id
   managed_login_version = 1 # Classic hosted sign-in; no managed-login branding dependency.
 }
