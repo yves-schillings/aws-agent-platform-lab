@@ -28,23 +28,25 @@ The repository is public. Source availability does not establish that an AWS ser
 
 ## Architecture
 
-The platform accepts a governed application-construction request through either an MCP (Model Context Protocol) client or the browser. Python and LangGraph coordinate the five roles, verify the caller’s access, retrieve only permitted source passages, call the selected model, and pause at the required human gates.
+The platform accepts a governed application-construction request through an MCP (Model Context Protocol) client or the browser. Python and LangGraph coordinate the five roles, verify the caller’s access, retrieve only permitted source passages, call the selected model and pause at the required human gates.
 
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <img src="docs/images/system-architecture.png" alt="System architecture for application construction" width="100%" />
-      <p><strong>Construction workflow.</strong> The diagram shows the client entry points, the Python/LangGraph Factory, the approval gates, document retrieval, model inference and the separate candidate-validation boundary.</p>
-    </td>
-    <td width="50%" valign="top">
-      <img src="docs/images/four-interfaces.png" alt="Four interfaces reaching the Python AI workflow" width="100%" />
-      <p><strong>Client access.</strong> Codex, Claude Code and Microsoft Copilot Studio call MCP tools. The React portal uses the FastAPI web endpoint. Both routes reach the same controlled Python workflow.</p>
-    </td>
-  </tr>
-</table>
+### Construction Workflow
 
+- **Request and access:** Clients submit a construction request through the MCP server or the FastAPI web endpoint.
+- **Python workflow:** LangGraph coordinates the Analyst, Architect, Code Author, Tester and Reviewer functions inside the Factory application.
+- **Human gates:** A named approver decides at G1 Scope, G2 Design, G3 Quality and G4 Release. The decision applies to the exact reviewed artifact.
+- **Controlled services:** Retrieval returns only permitted passages. The model receives the permitted context. Candidate validation runs in a separate, restricted boundary.
+
+![System architecture for application construction](docs/images/system-architecture.png)
+
+### Client Access
+
+- **MCP clients:** Codex, Claude Code and Microsoft Copilot Studio call the MCP tools exposed by the Python application.
+- **Web client:** The React portal sends HTTPS (Hypertext Transfer Protocol Secure) requests to the separate FastAPI endpoint.
+- **Shared workflow:** Both routes reach the same access controls, LangGraph workflow, document retrieval and model-call component.
+
+![Four interfaces reaching the Python AI workflow](docs/images/four-interfaces.png)
 The diagrams are licensed under [CC BY 4.0](docs/DIAGRAMS-LICENSE.md), with attribution to Yves Schillings, Secloudis.
-
 ## MVP status
 
 ### Implemented in the public source repository
