@@ -8,9 +8,49 @@ The project is an open-source foundation that organisations can inspect, run and
 
 The delivery sequence is AWS first: deploy and verify this Bedrock implementation. An Azure variant is a separate later phase.
 
+## Factory browser page
+
+- **Five AI roles:** The Factory coordinates Analyst, Architect, Code Author, Tester and Reviewer through LangGraph.
+- **Four human gates:** Scope, design, quality and release proposals require an authorised decision on the exact artifact.
+- **Browser entry:** The `/factory` page displays the workflow and a **Sign in** button before authentication. Starting or resuming a run requires a verified Cognito identity.
+- **Recorded demonstration:** This screenshot is kept in the repository. The AWS demonstration address is temporary and is not presented as a permanent public service link.
+
+![The deployed Factory homepage with five worker roles and four human gates](docs/images/factory-aws-home.jpg)
+
+### From the source code to the browser
+
+- **Page source:** [`factory.html`](src/aws_agent_platform_lab/static/factory.html) defines the page, [`factory.css`](src/aws_agent_platform_lab/static/factory.css) controls its appearance and [`factory.js`](src/aws_agent_platform_lab/static/factory.js) handles browser actions.
+- **Python server:** [`web.py`](src/aws_agent_platform_lab/web.py) serves `/factory` and its static assets through FastAPI.
+- **Container image:** [`Dockerfile`](Dockerfile) packages the Python application, page files and dependencies. Amazon **ECR (Elastic Container Registry)** stores this image.
+- **Task management:** Amazon **ECS (Elastic Container Service)** maintains the application tasks. **AWS Fargate** runs the containers while AWS manages the underlying servers.
+- **Browser delivery:** The **ALB (Application Load Balancer)** routes an HTTPS (Hypertext Transfer Protocol Secure) request to a healthy task. The Python server returns the page for the browser to display.
+- **Image promotion:** [`scripts/deploy_express.py`](scripts/deploy_express.py) updates the existing service to an exact image digest. See the [verified UI deployment record](docs/factory-ui-deployment.md).
+
+![Factory page source, container image storage, task management and browser delivery](docs/images/factory-page-hosting.png)
+
+### Local Docker checks before AWS deployment
+
+- **Local packaging:** Docker Desktop built and ran the application image on the development computer using the repository's [`Dockerfile`](Dockerfile) and [`requirements.txt`](requirements.txt). An image is the packaged application; a container is a running instance of it.
+- **Installed-container check:** [`scripts/container_smoke.py`](scripts/container_smoke.py) passed inside the local container. It checked health, installed browser files, explicit offline authentication configuration, retrieval, evidence and arrival at a human approval gate in the baseline demonstration.
+- **Factory checks:** Six tests in [`tests/test_factory_web.py`](tests/test_factory_web.py) passed for the four-gate journey, required identity, company separation, rejected authority injection, rejection behaviour and browser assets. Fifteen baseline tests in [`tests/test_web.py`](tests/test_web.py) also passed.
+- **Reading the capture:** The running `secloudis-factory-review-f777ead` container below is the local verification copy. Its CPU and memory figures describe the development computer's Docker environment. The two deployed application copies run on Fargate.
+- **Finding the image:** GitHub stores the Dockerfile, dependencies and [image build workflow](.github/workflows/deploy.yml). The built application image is stored in the private ECR repository `aws-agent-lab`, tagged with source revision `f777eadc9f0c95e3b34633ca021a6f779d1838de`. It is not published in GitHub Packages. Its deployed digest is recorded in the [deployment verification](docs/factory-ui-deployment.md).
+- **Evidence boundary:** Local checks used synthetic data, simulated identities and offline responses. They do not replace the complete live Cognito and Bedrock test with a requester and a distinct approver.
+
+![Docker Desktop showing the local verification container before the AWS image promotion](docs/images/docker-desktop-local-test.png)
+
+### Cognito sign-in
+
+- **Authentication:** Selecting **Sign in** opens the real Amazon Cognito form shown below. Cognito verifies the user's credentials before returning to the application.
+- **Separate responsibilities:** The requester starts the run. A distinct, authorised approver reviews the four gates.
+- **Evidence boundary:** These screens establish that the entry page and sign-in form are available. They do not establish a completed authenticated model run.
+- **Earlier demonstration:** The root page `/` retains the original three-role workflow: Analyst, Designer and Reviewer. It links to the five-role Factory.
+
+![Amazon Cognito sign-in form before entering an email or password](docs/images/cognito-sign-in.jpg)
+
 ## Engineering documentation
 
-The Secloudis article, Word review copy, presentation masters, PDFs and figure exports are maintained outside this source repository. This repository contains the application source, tests, infrastructure definitions, runbooks and technical implementation documentation.
+This repository contains the application source, tests, infrastructure definitions, runbooks and technical implementation documentation. The explanations link directly to the code that implements each part.
 
 The repository is public. The AWS deployment status below records only checks completed against the live environment.
 
@@ -74,13 +114,13 @@ The diagrams are licensed under [CC BY 4.0](docs/DIAGRAMS-LICENSE.md), with attr
   - Terraform defines ECS/Fargate, Application Load Balancer, ECR, Cognito, S3, KMS, IAM, CloudWatch, Bedrock Knowledge Bases and S3 Vectors.
   - GitHub Actions and scripts build, publish, deploy, validate and roll back the container delivery path.
 
-### Live AWS deployment status — 3 October 2026
+### Live AWS deployment status
 
 - **Infrastructure and application service: verified**
   - Terraform has created the ECS/Fargate service, Amazon ECR, Cognito, DynamoDB, S3, KMS, Bedrock Knowledge Bases, S3 Vectors, IAM and CloudWatch resources in `eu-west-1`.
-  - The service is available at `https://aw-58d0af7abca0410db85d76728839036d.ecs.eu-west-1.on.aws`.
+  - The demonstration endpoint is recorded in the operator's deployment outputs. It is temporary and may be removed after the demonstration.
   - `GET /healthz` returned `{"status":"ok"}` from the deployed service.
-  - The service runs the immutable ECR image digest `sha256:d746663d0dc30e98db2455351c0e8c2c62e5776e5e53b43235b35c90c0f8ef94`.
+  - The service runs the immutable ECR image digest `sha256:7e74d04c801bb393306dd0ffd4fcd2c3509e467d9efde662267b2f78875cd777`. The [UI deployment record](docs/factory-ui-deployment.md) identifies its source and observed service state.
 
 - **Knowledge Base: verified**
   - The reviewed synthetic corpus was uploaded and the Bedrock Knowledge Base ingestion completed without failures.
