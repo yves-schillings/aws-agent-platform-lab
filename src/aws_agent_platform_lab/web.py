@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 import httpx
 from fastapi import FastAPI, Depends, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -224,9 +224,26 @@ def create_app(*, service: Any = None, environ: Mapping[str, str] | None = None,
         return {"status": "ok"}
 
     @app.get("/")
-    @app.get("/auth/callback")
     def index():
-        """Serve the baseline browser client and its sign-in callback shell."""
+        """Make the enabled AWS Factory the canonical entry point."""
+        if not local and factory_enabled:
+            return RedirectResponse("/factory", status_code=307)
+        return FileResponse(STATIC / "index.html")
+
+    @app.get("/demo")
+    def baseline_index():
+        """Keep the original three-role demonstration explicitly separate."""
+        return FileResponse(STATIC / "index.html")
+
+    @app.get("/auth/callback")
+    def auth_callback():
+        """Return the code to the browser client that initiated sign-in.
+
+        The clients retain separate PKCE verifiers and validate OAuth state
+        themselves. This shell exchanges no credentials and stores no tokens.
+        """
+        if not local and factory_enabled:
+            return FileResponse(STATIC / "auth-callback.html")
         return FileResponse(STATIC / "index.html")
 
     @app.get("/factory")
