@@ -91,7 +91,34 @@ resource "aws_kms_key" "data" {
   description             = "Synthetic lab document and artifact encryption"
   enable_key_rotation     = true
   deletion_window_in_days = 30
-  depends_on              = [terraform_data.deployment_gate]
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "EnableAccountAdministration"
+        Effect    = "Allow"
+        Principal = { AWS = local.account_arn }
+        Action    = "kms:*"
+        Resource  = "*"
+      },
+      {
+        Sid       = "AllowS3VectorsBackgroundIndexing"
+        Effect    = "Allow"
+        Principal = { Service = "indexing.s3vectors.amazonaws.com" }
+        Action    = ["kms:Decrypt"]
+        Resource  = "*"
+        Condition = {
+          ArnLike = {
+            "aws:SourceArn" = "arn:aws:s3vectors:${var.aws_region}:${var.aws_account_id}:bucket/*"
+          }
+          StringEquals = {
+            "aws:SourceAccount" = var.aws_account_id
+          }
+        }
+      }
+    ]
+  })
+  depends_on = [terraform_data.deployment_gate]
 }
 resource "aws_kms_alias" "data" {
   name          = "alias/${var.name_prefix}-data"
