@@ -24,7 +24,7 @@ web = [
   "opentelemetry-api>=1.30,<2",
   "opentelemetry-sdk>=1.30,<2",
 ]
-test = ["httpx>=0.28,<1"]
+test = ["httpx>=0.28,<1", "moto[dynamodb]==5.2.3"]
 
 [project.scripts]
 aws-agent-platform-lab = "aws_agent_platform_lab.cli:main"

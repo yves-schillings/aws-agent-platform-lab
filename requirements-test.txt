@@ -1,0 +1,3 @@
+# Offline AWS emulator used only by tests, never installed in the application image.
+-r requirements.txt
+moto[dynamodb]==5.2.3
