@@ -34,3 +34,20 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 aws_agent_platform_lab = ["static/*"]
+
+[tool.ruff]
+target-version = "py311"
+
+[tool.ruff.lint]
+# Correctness checks across application, tests and deployment scripts.
+select = ["E9", "F"]
+
+[tool.mypy]
+python_version = "3.11"
+# Incremental typing starts at the token and validation boundaries. It is not
+# a claim that all of the dynamically imported provider integrations are typed.
+files = ["src/aws_agent_platform_lab/auth.py", "src/aws_agent_platform_lab/models.py"]
+follow_imports = "silent"
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = true
