@@ -244,6 +244,9 @@ class CognitoFactoryWebTests(unittest.TestCase):
             state = result.json()
         self.assertEqual(state["status"], "release_ready")
         self.assertTrue(all(d["identity_verified"] and not d["simulated"] for d in state["decisions"]))
+        gate_events = [event for event in state["events"] if event["kind"] == "gate_decided"]
+        self.assertEqual([event["gate"] for event in gate_events], list(GATES))
+        self.assertTrue(all(not event["simulated"] for event in gate_events))
         self.assertEqual(self.client.get(url.removesuffix("/decision"), headers=self.bearer("alpha-token")).json()["status"], "release_ready")
 
     def test_review_read_requires_the_pending_gate_and_exact_source_scope(self):
