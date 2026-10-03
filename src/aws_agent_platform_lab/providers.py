@@ -158,7 +158,22 @@ class MockProvider:
                 "files": [{"path": "proposed_app/affiliations.py",
                            "purpose": "Read-only affiliation search with effective dates.",
                            "content": "# Proposed source text only; the Factory never executes it.\n"
-                                      "def search(scope, query, as_of):\n    raise NotImplementedError\n"}],
+                                      "from datetime import date\n\n"
+                                      "def search(records, scope, query, as_of):\n"
+                                      "    day = date.fromisoformat(as_of)\n"
+                                      "    term = query.casefold()\n"
+                                      "    result = []\n"
+                                      "    for record in records:\n"
+                                      "        if record['company_id'] not in scope:\n"
+                                      "            continue\n"
+                                      "        start = date.fromisoformat(record['valid_from'])\n"
+                                      "        end = record.get('valid_to')\n"
+                                      "        if start > day or (end and day > date.fromisoformat(end)):\n"
+                                      "            continue\n"
+                                      "        if term in record['affiliation_id'].casefold():\n"
+                                      "            result.append({key: record[key] for key in\n"
+                                      "                ('company_id', 'affiliation_id', 'valid_from', 'valid_to')})\n"
+                                      "    return result\n"}],
                 "notes": ["The candidate is inert text until a separate sandbox builds and tests it."],
                 "citations": ids,
             }
