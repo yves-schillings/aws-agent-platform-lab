@@ -23,6 +23,15 @@
       <div><h2>Your company workspace</h2><p id="factory-identity">Loading identity configuration.</p></div>
       <div class="session-actions"><label id="factory-company-label" for="factory-company">Company<select id="factory-company" disabled></select></label><button id="factory-sign-in" hidden>Sign in</button><button id="factory-sign-out" class="secondary" hidden>Sign out</button><button id="factory-restore" class="secondary" disabled>Resume saved run</button></div>
     </section>
+    <section class="card review-card" aria-labelledby="open-run-title">
+      <h2 id="open-run-title">Open a workflow for review</h2>
+      <p>The requester can share the run ID. Sign in with your assigned approver account to inspect its pending proposal. The server checks company, project and gate permissions.</p>
+      <form id="factory-open-form">
+        <label for="factory-run-id">Run ID</label>
+        <input id="factory-run-id" type="text" minlength="32" maxlength="32" pattern="[a-f0-9]{32}" required autocomplete="off">
+        <button id="factory-open" type="submit" disabled>Open this workflow</button>
+      </form>
+    </section>
     <section class="card architecture" aria-labelledby="architecture-title">
       <div class="section-label">WORKFLOW AND HUMAN AUTHORITY</div>
       <h2 id="architecture-title">Five worker roles, four human approval gates</h2>

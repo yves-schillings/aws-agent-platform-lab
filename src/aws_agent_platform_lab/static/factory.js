@@ -21,6 +21,7 @@ function controls() {
   byId("factory-company").disabled = busy || !configured || !configuration?.simulated;
   byId("factory-start").disabled = busy || !configured;
   byId("factory-restore").disabled = busy || !configured || !savedRun();
+  byId("factory-open").disabled = busy || !configured;
   const ready = !!state?.pending_gate && byId("factory-reviewed").checked && byId("factory-reason").value.trim().length > 0;
   byId("factory-approve").disabled = busy || !ready;
   byId("factory-reject").disabled = busy || !ready;
@@ -108,6 +109,14 @@ function acceptState(result) { state = result; try { localStorage.setItem(savedK
 byId("factory-form").addEventListener("submit", event => { event.preventDefault(); operation(async () => acceptState(await api("/api/factory/runs", {request_text: byId("factory-request").value, synthetic: byId("factory-synthetic").checked}))); });
 byId("factory-decision-form").addEventListener("submit", event => { event.preventDefault(); const pending = state?.pending_gate, decision = event.submitter?.value; if (!pending || !["approve", "reject"].includes(decision)) return; operation(async () => acceptState(await api(`/api/factory/runs/${encodeURIComponent(state.run_id)}/decision`, {gate: pending.gate, artifact_hash: pending.artifact_hash, decision, reason: byId("factory-reason").value.trim()}))); });
 byId("factory-restore").addEventListener("click", () => operation(async () => { const id = savedRun(); if (id) acceptState(await api(`/api/factory/runs/${encodeURIComponent(id)}`)); }));
+byId("factory-open-form").addEventListener("submit", event => {
+  event.preventDefault();
+  operation(async () => {
+    const id = byId("factory-run-id").value.trim();
+    if (!/^[a-f0-9]{32}$/.test(id)) throw new Error("Enter the 32-character run ID supplied by the requester.");
+    acceptState(await api(`/api/factory/runs/${encodeURIComponent(id)}`));
+  });
+});
 byId("factory-company").addEventListener("change", () => { state = null; notice(""); render(); }); byId("factory-reviewed").addEventListener("change", controls); byId("factory-reason").addEventListener("input", controls);
 byId("factory-sign-in").addEventListener("click", () => signIn().catch(error => notice(error.message, true)));
 byId("factory-sign-out").addEventListener("click", () => { token = null; principal = null; configured = false; state = null; render(); updateIdentity(); byId("factory-sign-in").hidden = false; byId("factory-sign-out").hidden = true; const url = new URL(authConfiguration.logout_endpoint); url.search = new URLSearchParams({client_id: authConfiguration.client_id, logout_uri: authConfiguration.logout_uri}); location.assign(url.toString()); });
