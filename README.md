@@ -91,8 +91,8 @@ The diagrams are licensed under [CC BY 4.0](docs/DIAGRAMS-LICENSE.md), with attr
   - A browser sign-in with an enrolled test user remains the next identity validation.
 
 - **Cognito test identities: created**
-  - `aws-requester@secloudis.com` is the Factory requester in `demo-alpha`.
-  - `aws-approver@secloudis.com` is the independent approver in `demo-alpha`, `factory-g1-approver`, `factory-g2-approver`, `factory-g3-approver` and `factory-g4-approver`.
+  - The **requester test account** belongs to `demo-alpha`.
+  - The **independent approver test account** belongs to `demo-alpha`, `factory-g1-approver`, `factory-g2-approver`, `factory-g3-approver` and `factory-g4-approver`.
   - Both Cognito users are enabled and must complete their temporary-password sign-in before the browser workflow test.
 
 - **Still to validate in the live environment**
