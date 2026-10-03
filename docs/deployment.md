@@ -48,13 +48,14 @@ The [restart verification](persistence-verification.md) records an actual local 
 
 Complete the remaining [Stage 0: AWS account setup](aws-account-setup.md)
 prerequisites first. Account console access was confirmed by a user-provided
-capture on 30 September 2026. Operator access, MFA, the deployment region, budget
-controls, models and application services remain unverified. Console access alone
-does not provision this lab or prove application authentication through Cognito.
+capture on 30 September 2026. The live deployment subsequently verified the
+authorised account, eu-west-1, application service and Knowledge Base retrieval.
+Console access and health checks alone do not prove application authentication
+through Cognito or the Factory workflow.
 
 ### Connect the operator workstation
 
-AWS CLI 2.37.6 was installed and its version checked on the Windows development workstation using the signed Amazon per-user MSI. No AWS login or resource operation was performed. Open a new terminal for the updated PATH; the per-user executable is `%LOCALAPPDATA%\Programs\Amazon\AWSCLIV2\aws.exe`. Other workstations can follow the [official AWS CLI installation instructions](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
+AWS CLI 2.37.6 was installed and used on the Windows development workstation for the reviewed live deployment. Open a new terminal for the updated PATH; the per-user executable is `%LOCALAPPDATA%\Programs\Amazon\AWSCLIV2\aws.exe`. Other workstations can follow the [official AWS CLI installation instructions](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
 
 After the account and region are agreed, use the account's existing authorized sign-in method. For IAM Identity Center, obtain the real start URL, SSO region, account and role from the administrator, then use:
 
