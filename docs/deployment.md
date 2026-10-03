@@ -6,7 +6,7 @@ This runbook describes the operator commands used to deploy the synthetic lab an
 
 The browser signs in through a Cognito public client using authorization code with PKCE. FastAPI validates access tokens and resolves Cognito groups to server-side tenant/access scopes. ECS Express Mode maintains two identical Python application tasks on Fargate behind its managed HTTPS Application Load Balancer. Each task runs the same immutable container image in its own isolated runtime. The application calls Bedrock Converse, retrieves from one Bedrock Knowledge Base backed by S3 Vectors, invokes an in-process-owned MCP subprocess over stdio, and stores run state and artifact decisions in a private S3 bucket using conditional writes.
 
-Terraform provisions two public subnets and an Internet Gateway, without a NAT Gateway. Express manages the load balancer, certificates, security groups and task public IP assignment. The runtime is one 0.5-vCPU/1-GiB task; a deployment may temporarily run more tasks. This is a deliberately small demonstration topology, with public network egress and no high-availability or private-network claim. Inspect the actual managed security groups after deployment and verify that application traffic reaches tasks only through the load balancer. [AWS Express resources and networking](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/express-service-work.html)
+Terraform provisions two public subnets and an Internet Gateway, without a NAT Gateway. Express manages the load balancer, certificates, security groups and task public IP assignment. The runtime has two application tasks, each with 0.5 vCPU and 1 GiB of memory. A rollout can temporarily overlap task copies. The Factory uses shared DynamoDB checkpoints and a run registry. This is a demonstration topology with public network egress. Two copies alone do not prove high availability or recovery objectives. Inspect the actual managed security groups after deployment and verify that application traffic reaches tasks only through the load balancer. [AWS Express resources and networking](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/express-service-work.html)
 
 The two S3 buckets block public access, enforce TLS, use KMS encryption and enable versioning. S3 Vectors also uses the lab KMS key. Runtime IAM grants exact configured inference resources, Retrieve on one KB, and GetObject/PutObject only under `runs/*` and `principals/*`. `ListBucket` is granted on the artifacts bucket so a missing state/lease key returns 404: S3 otherwise returns 403, and GetObject does not carry a ListObjects prefix condition. The app does not list objects or receive object-delete permission. [S3 GetObject permissions](https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObject.html)
 
@@ -69,7 +69,7 @@ The SSO region is the directory's location and may differ from the workload regi
 
 For an authorized console identity outside Identity Center, `aws login --profile aws-agent-lab` is an alternative browser sign-in flow. It requires the appropriate local-development sign-in permission. Tools that do not support login sessions directly can use the documented separate `credential_process` profile; verify SDK and Terraform identity resolution before planning. Do not print exported credentials to capture logs. [AWS console sign-in for local development](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sign-in.html)
 
-Compare the returned account and role with the approved deployment identity before any resource action. Keep credentials in the normal AWS profile/cache outside the repository. The operator role used for Terraform is distinct from the application and GitHub roles. These sign-in commands remain operator actions to perform with the user; account access has not been established.
+Compare the returned account and role with the approved deployment identity before any resource action. Keep credentials in the normal AWS profile/cache outside the repository. The operator role used for Terraform is distinct from the application and GitHub roles. Deployment account access and application-user sign-in through Cognito are separate checks.
 
 ### Record the deployment inputs
 
@@ -147,10 +147,38 @@ Inspect CloudWatch logs, private S3 state/versions and the actual task IAM/secur
 
 For subsequent versions, run the deployment workflow with `publish_only=false` only after offline CI and review. It preserves the current environment, secret references and logging configuration, changes only the exact image digest, and waits for the target revision. A failed/unverified receipt requires investigation. Use [rollback.md](rollback.md) for a deliberate rollback.
 
-## Production work not completed
+## Enterprise deployment extensions outside this proof of concept
 
-Before real data or wider access: review threat model and tenant isolation, organization federation and MFA policy, private egress/network controls, WAF/rate limits, durable job execution/cancellation and idempotency, distributed quotas, multi-task recovery, availability objectives, backup/restore, retention/deletion, key policy restrictions, incident response, alert routing, load/penetration testing, dependency/image scanning enforcement, Terraform remote state, policy checks and deployment approval controls. Langfuse/Dynatrace integrations require separate implementation and data-export approval. This lab does not claim production readiness.
+The deployed service is a **synthetic proof of concept**. The following extensions and acceptance checks concern use with real organisational data or wider access. They are separate from the retained demonstration scope and do not establish production readiness merely by being listed.
 
-Stopping the task alone does not remove ALB, storage, versions, vectors, keys or logs. Review a teardown plan after the agreed demonstration period. Cognito deletion protection and non-empty bucket/ECR safeguards deliberately require explicit operator handling; preserve any needed evidence first. No automatic cleanup or destructive convenience script is included.
+- **Organisation identity and data isolation**
+  - Review the threat model and verify tenant isolation with representative access tests.
+  - Configure organisation federation and the required MFA (Multi-Factor Authentication) policy.
+- **Network and request controls**
+  - Define private outbound connectivity and approved destinations where required.
+  - Configure WAF (Web Application Firewall), rate limits and distributed quotas appropriate to the workload.
+- **Execution and recovery**
+  - Define durable job execution, cancellation and idempotency requirements.
+  - Verify multi-task recovery, availability objectives and backup/restore procedures. Shared DynamoDB checkpoints alone do not prove these outcomes.
+- **Data lifecycle and operations**
+  - Establish retention, deletion and key-access policies.
+  - Assign incident response and alert recipients, then exercise the procedures.
+- **Delivery assurance**
+  - Run representative load and penetration tests.
+  - Review existing dependency checks and enforce the required image-scan policy.
+  - Configure protected Terraform remote state, policy checks and deployment approvals for shared operation.
+- **Optional external observability**
+  - Implement and test Langfuse or Dynatrace separately if selected.
+  - Approve any telemetry data export before enabling it.
 
-Provider resources/schema were checked against [AWS provider 6.66.0](https://github.com/hashicorp/terraform-provider-aws/tree/v6.66.0/website/docs/r) on 2026-09-30. Availability and runtime behavior must still be verified in the selected account.
+## Demonstration costs and resource lifecycle
+
+- **Stopping tasks does not remove the infrastructure**
+  - The ALB (Application Load Balancer), storage, object versions, vectors, keys and logs can remain billable.
+  - Review a teardown plan when the demonstration is no longer required.
+- **Preserve evidence before deletion**
+  - Cognito deletion protection and non-empty S3 bucket/ECR repository safeguards require explicit operator handling.
+  - Retain needed evidence before removing resources. No automatic teardown is configured.
+- **Provider compatibility**
+  - Infrastructure definitions use the pinned [AWS provider 6.66.0](https://github.com/hashicorp/terraform-provider-aws/tree/v6.66.0/website/docs/r).
+  - Verify service availability and actual runtime behavior in the selected account. Provider validation does not replace live acceptance tests.
