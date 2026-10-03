@@ -69,6 +69,15 @@ python scripts/check_azure_connection.py --call
 - Do not switch the deployed service to `FACTORY_PROVIDER=azure` as a shortcut. Record a live inference test and a complete authenticated Factory run separately.
 - Long-running token authentication requires renewal; a static Entra token is only a short-lived test credential.
 
+## Optional OpenAI SDK transport
+
+- **OpenAI SDK (Software Development Kit):** The official Python package openai can also call Azure OpenAI. This implementation instead uses urllib.request; it does not import or require the OpenAI SDK.
+- **Optional SDK adapter:** A replacement could use from openai import OpenAI, set base_url to the authorised Azure resource followed by /openai/v1/, and call client.chat.completions.create(model=<deployment-alias>, messages=...). Preserve endpoint validation, response checks, limits and sanitised errors when replacing the transport.
+- **SDK and hosting boundary:** The client library does not determine where inference runs. An Azure base_url selects Azure; a direct OpenAI endpoint selects OpenAI. Processing region and data handling depend on the selected service and deployment. LangGraph remains the orchestrator; this option does not require the OpenAI Agents SDK.
+
+- [OpenAI SDK documentation](https://developers.openai.com/api/docs/libraries)
+- [Microsoft Azure endpoint configuration](https://learn.microsoft.com/en-us/azure/foundry-classic/openai/how-to/switching-endpoints)
+
 ## Official references
 
 - [Foundry endpoints and deployment aliases](https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/endpoints)
