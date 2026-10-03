@@ -82,4 +82,3 @@ The base commit was `86ac8aa`; these results apply to the **uncommitted working 
 
 Next, qualify a conversational client for describe/start/get using the [MCP access guide](conversational-access.md), establish an authorised AWS operator session, then verify account, region, model access and cost limits before the first real baseline deployment. A local test result does not establish any of those cloud outcomes.
 
-Use the [Claude review brief](claude-review-brief.md) for an independent code review when the user explicitly initiates it. The brief is ready to use, but no paid external-model call or source upload is implied. Human owners retain the gate decisions and the final decision to deploy.
