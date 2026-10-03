@@ -12,7 +12,7 @@ The delivery sequence is AWS first: deploy and verify this Bedrock implementatio
 
 The Secloudis article, Word review copy, presentation masters, PDFs and figure exports are maintained outside this source repository. This repository contains the application source, tests, infrastructure definitions, runbooks and technical implementation documentation.
 
-The repository is public. Source availability does not establish that an AWS service has been deployed; deployment status is recorded only after live verification.
+The repository is public. The AWS deployment status below records only checks completed against the live environment.
 
 ## Source publication evidence
 
@@ -74,24 +74,49 @@ The diagrams are licensed under [CC BY 4.0](docs/DIAGRAMS-LICENSE.md), with attr
   - Terraform defines ECS/Fargate, Application Load Balancer, ECR, Cognito, S3, KMS, IAM, CloudWatch, Bedrock Knowledge Bases and S3 Vectors.
   - GitHub Actions and scripts build, publish, deploy, validate and roll back the container delivery path.
 
-### AWS deployment code is prepared; live execution is not yet claimed
+### Live AWS deployment status — 3 October 2026
 
-- **Terraform execution**
-  - The reviewed account-specific variables must be supplied.
-  - Terraform must create the resources in the authorised AWS account.
+- **Infrastructure and application service: verified**
+  - Terraform has created the ECS/Fargate service, Amazon ECR, Cognito, DynamoDB, S3, KMS, Bedrock Knowledge Bases, S3 Vectors, IAM and CloudWatch resources in `eu-west-1`.
+  - The service is available at `https://aw-58d0af7abca0410db85d76728839036d.ecs.eu-west-1.on.aws`.
+  - `GET /healthz` returned `{"status":"ok"}` from the deployed service.
+  - The service runs the immutable ECR image digest `sha256:d746663d0dc30e98db2455351c0e8c2c62e5776e5e53b43235b35c90c0f8ef94`.
 
-- **Container delivery**
-  - The exact image digest must be published to Amazon ECR and selected by the ECS service.
-  - The running tasks must pass their health checks behind the Application Load Balancer.
+- **Knowledge Base: verified**
+  - The reviewed synthetic corpus was uploaded and the Bedrock Knowledge Base ingestion completed without failures.
+  - A live Bedrock Knowledge Bases retrieval returned the indexed synthetic source.
 
-- **Identity, retrieval and inference**
-  - A real Cognito user must sign in through the configured callback URL.
-  - The synthetic corpus must be ingested into the Knowledge Base.
-  - A real Bedrock response must be retrieved and recorded with its permitted citations and usage evidence.
+- **Cognito callback: configured**
+  - The public HTTPS callback is configured in Cognito.
+  - A browser sign-in with an enrolled test user remains the next identity validation.
 
-- **Publication evidence**
-  - The Secloudis article will include the live Cognito, Bedrock, Knowledge Base, ECS/Fargate and GitHub Actions evidence after those checks succeed.
-  - Source availability alone does not prove a live AWS deployment.
+- **Still to validate in the live environment**
+  - A Cognito-authenticated Factory run using a real model invocation.
+  - Separate approver identities completing the four Factory gates.
+  - GitHub Actions deployment through the configured `aws-lab` environment.
+
+### Deployment commands and scripts
+
+The first deployment has three explicit phases. Read [the deployment runbook](docs/deployment.md) before running any command that creates or changes AWS resources.
+
+- **1. Terraform creates and configures the environment**
+  - [`infra/main.tf`](infra/main.tf) defines the AWS resources.
+  - `infra/terraform.tfvars` is a local, Git-ignored operator file with the authorised account, region, cost acknowledgement, model and image digest.
+  - The operator runs `terraform -chdir=infra init`, reviews `terraform -chdir=infra plan`, then runs `terraform -chdir=infra apply` only for the reviewed plan.
+
+- **2. Docker and the AWS CLI publish the first immutable image**
+  - Docker builds the application image.
+  - `aws ecr get-login-password`, `docker push` and `aws ecr describe-images` publish and resolve the exact `@sha256` digest.
+  - Terraform then receives that digest to create the running service.
+
+- **3. Scripts promote later images and verify the result**
+  - [`scripts/deploy_express.py`](scripts/deploy_express.py) changes only the image of an existing ECS Express service after validating the account, service ARN and immutable ECR digest.
+  - [`scripts/preflight.py`](scripts/preflight.py) checks the required deployment inputs before a promotion.
+  - [`scripts/rollback_express.py`](scripts/rollback_express.py) performs the explicit rollback path.
+  - [`scripts/container_smoke.py`](scripts/container_smoke.py) and [`scripts/deploy_test.py`](scripts/deploy_test.py) test the delivery path.
+  - The manual GitHub Actions workflow is [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
+
+The initial resource creation is Terraform, not `deploy_express.py`. That distinction is intentional: the promotion script cannot silently create infrastructure.
 **Preserved baseline:** the following application remains available independently at `/` and through its original command-line interface.
 
 The lab now includes a FastAPI/browser application and a command-line workflow. An analyst, designer and reviewer run in sequence, with at most two correction rounds before an explicit human decision. Approval is bound to the SHA-256 hash of the exact artifact.

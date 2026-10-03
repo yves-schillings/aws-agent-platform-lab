@@ -1,6 +1,6 @@
 # AWS deployment runbook
 
-This repository contains a deployable candidate for a synthetic demonstration. No AWS resources, users, model subscriptions or public endpoints were created during development. Terraform schema validation and offline tests do not establish that an AWS deployment works. Account authorization, regional availability, costs, model access and authenticated end-to-end behavior still require an operator's verification.
+This runbook describes the operator commands used to deploy the synthetic lab and to promote later immutable images. On 3 October 2026, Terraform created the target resources in `eu-west-1`, the public ECS endpoint passed `/healthz`, and a synthetic corpus ingestion plus Knowledge Base retrieval completed. A real Cognito browser sign-in, authenticated Factory model run, separate-gate approval and GitHub Actions promotion remain validation steps; they are not inferred from the health check.
 
 ## Topology and boundaries
 
@@ -88,7 +88,33 @@ Terraform state initially uses the local backend and must stay outside version c
 
 ## 3. Bootstrap infrastructure, then the first image
 
-The following commands are operator actions that create billable resources. They were not executed during development.
+The following commands are the explicit operator sequence for initial creation. They create billable resources. The same sequence was used for the first live deployment, with a reviewed local `terraform.tfvars` file and an immutable ECR image digest.
+
+```powershell
+# 1. Create the supporting AWS resources without an application service.
+terraform -chdir=infra init -input=false
+terraform -chdir=infra plan -input=false -out=bootstrap.tfplan
+terraform -chdir=infra apply -input=false bootstrap.tfplan
+
+# 2. Build and publish a reviewed application image to ECR.
+aws ecr get-login-password --region <region> |
+  docker login --username AWS --password-stdin <account>.dkr.ecr.<region>.amazonaws.com
+docker build --tag <ecr-repository>:<commit-sha> .
+docker push <ecr-repository>:<commit-sha>
+aws ecr describe-images --repository-name <repository-name> --region <region>
+
+# 3. Put the returned repository@sha256 digest and enable_service=true in
+#    the ignored infra/terraform.tfvars file, then create the service.
+terraform -chdir=infra plan -input=false -out=service.tfplan
+terraform -chdir=infra apply -input=false service.tfplan
+
+# 4. Copy the generated HTTPS origin into public_base_url in terraform.tfvars,
+#    then apply the Cognito callback update.
+terraform -chdir=infra plan -input=false -out=callback.tfplan
+terraform -chdir=infra apply -input=false callback.tfplan
+```
+
+`scripts/deploy_express.py` is deliberately absent from this first-creation sequence. It promotes a new exact ECR digest only after Terraform has created the service.
 
 1. Leave `enable_service=false`, `app_image_digest=""` and `public_base_url=""`. With reviewed inputs and authorized operator credentials, run `terraform -chdir=infra plan -out=bootstrap.tfplan`, review the full plan, then `terraform -chdir=infra apply bootstrap.tfplan`. This creates supporting resources, including the empty KB, ECR repository and Cognito client, but no running application service.
 2. Create GitHub environment `aws-lab`, restrict deployment branches to the default branch and configure required reviewers where available. Set environment variables `AWS_REGION`, `AWS_ACCOUNT_ID`, `AWS_ROLE_ARN` from `github_deploy_role_arn`, and `ECR_REPOSITORY` to the repository **name** (the Terraform `name_prefix`, not its URL). The OIDC subject must match this environment. Credentials are short-lived; no AWS access key is stored in GitHub.
