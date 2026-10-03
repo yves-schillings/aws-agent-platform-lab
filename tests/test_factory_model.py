@@ -5,8 +5,9 @@ import unittest
 from pathlib import Path
 
 from aws_agent_platform_lab.auth import Principal
-from aws_agent_platform_lab.factory import (FIXTURES, GATES, MODEL_LIMITATIONS, FactoryService,
-                                            service_from_environment, validate_model_output)
+from aws_agent_platform_lab.factory import (FIXTURES, GATES, MODEL_LIMITATIONS, DynamoRunRegistry,
+                                            FactoryService, service_from_environment,
+                                            validate_model_output)
 from aws_agent_platform_lab.models import ValidationError
 from aws_agent_platform_lab.providers import MockProvider
 from aws_agent_platform_lab.services import ServiceError
@@ -266,6 +267,59 @@ class CognitoFactoryWebTests(unittest.TestCase):
         result = client.post("/api/factory/runs", headers=self.bearer("alpha-token"),
                              json={"request_text": REQUEST, "synthetic": True})
         self.assertEqual(result.status_code, 404)
+
+    def test_factory_browser_is_available_when_the_aws_factory_is_enabled(self):
+        page = self.client.get("/factory")
+        config = self.client.get("/api/factory/config")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn("Factory browser client", page.text)
+        self.assertEqual(config.status_code, 200)
+        self.assertEqual(config.json(), {"simulated": False, "mode": "aws",
+                                         "engine": "langgraph", "identities": []})
+
+
+class FactoryDynamoRegistryTests(unittest.TestCase):
+    """Shared-registry unit checks without an AWS account or DynamoDB endpoint."""
+
+    class Client:
+        def __init__(self):
+            self.items = {}
+
+        def put_item(self, *, TableName, Item, ConditionExpression):
+            key = Item["run_id"]["S"]
+            if key in self.items:
+                raise RuntimeError("already exists")
+            self.items[key] = Item
+
+        def get_item(self, *, TableName, Key, ConsistentRead):
+            item = self.items.get(Key["run_id"]["S"])
+            return {} if item is None else {"Item": item}
+
+        def update_item(self, *, TableName, Key, UpdateExpression, ConditionExpression,
+                        ExpressionAttributeValues):
+            key = Key["run_id"]["S"]
+            self.items[key] = {"run_id": {"S": key},
+                               "lease_owner": ExpressionAttributeValues[":owner"],
+                               "lease_expires": ExpressionAttributeValues[":expires"]}
+
+        def delete_item(self, *, TableName, Key, ConditionExpression, ExpressionAttributeValues):
+            key = Key["run_id"]["S"]
+            item = self.items.get(key)
+            if item is None or item["lease_owner"] != ExpressionAttributeValues[":owner"]:
+                raise RuntimeError("not lock owner")
+            del self.items[key]
+
+    def test_shared_registry_preserves_scope_and_releases_a_per_run_lease(self):
+        client = self.Client()
+        registry = DynamoRunRegistry("factory-runs", client=client)
+        run_id = "a" * 32
+        identity = {"owner": "owner", "tenant": "alpha", "access_level": "internal",
+                    "company_id": "company-1", "project_id": "affiliation-demo"}
+        registry.create(run_id, identity)
+        self.assertEqual(registry.get(run_id), {"run_id": run_id, **identity})
+        with registry.locked(run_id):
+            self.assertIn(run_id + "#lock", client.items)
+        self.assertNotIn(run_id + "#lock", client.items)
 
 
 if __name__ == "__main__":
