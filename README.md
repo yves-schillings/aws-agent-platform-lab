@@ -90,6 +90,11 @@ The diagrams are licensed under [CC BY 4.0](docs/DIAGRAMS-LICENSE.md), with attr
   - The public HTTPS callback is configured in Cognito.
   - A browser sign-in with an enrolled test user remains the next identity validation.
 
+- **Cognito test identities: created**
+  - `aws-requester@secloudis.com` is the Factory requester in `demo-alpha`.
+  - `aws-approver@secloudis.com` is the independent approver in `demo-alpha`, `factory-g1-approver`, `factory-g2-approver`, `factory-g3-approver` and `factory-g4-approver`.
+  - Both Cognito users are enabled and must complete their temporary-password sign-in before the browser workflow test.
+
 - **Still to validate in the live environment**
   - A Cognito-authenticated Factory run using a real model invocation.
   - Separate approver identities completing the four Factory gates.
@@ -123,7 +128,7 @@ The lab now includes a FastAPI/browser application and a command-line workflow. 
 
 The local browser mode uses deterministic mock responses, a synthetic corpus, two simulated identities and a bounded stdio Model Context Protocol (MCP) checklist tool. Run/source access checks, exact-artifact decisions, persistence, safe traces and failure paths are exercised locally. The interface visibly labels simulated inference and identities.
 
-The AWS code path includes Cognito access-token verification, server-filtered Bedrock Knowledge Bases retrieval, Bedrock Converse and S3 artifact storage with conditional writes. Terraform, a container definition and GitHub workflow files describe the deployment path. **A successful real Cognito login, Bedrock/Knowledge Bases call or AWS deployment remains to be verified in an authorised account.** Local tests and fake SDK transports do not establish those outcomes.
+The AWS code path includes Cognito access-token verification, server-filtered Bedrock Knowledge Bases retrieval, Bedrock Converse and S3 artifact storage with conditional writes. Terraform, a container definition and GitHub workflow files define the delivery path. **The public service health check and a live Knowledge Bases retrieval are verified in the authorised AWS account.** The Cognito browser sign-in and authenticated Factory model run remain separate checks; local tests and fake SDK transports do not establish those outcomes.
 
 A legacy Azure adapter remains for provider-contract tests; the web service and deployment target AWS. See [the architecture](docs/architecture.md), [authentication boundary](docs/authentication.md) and [implementation backlog](docs/implementation-backlog.md).
 
@@ -175,7 +180,7 @@ Configure an authorised AWS role or profile, region and available Converse-compa
 
 ## What the workflow proves
 
-1. **Retrieval:** local browser retrieval applies identity scope before lexical ranking. AWS retrieval sends a server-owned tenant/access filter to Knowledge Bases and checks returned source metadata again. That SDK boundary is tested with fake responses; a live vector index remains unverified. The original CLI corpus flags are declarations, not identity controls or anonymisation.
+1. **Retrieval:** local browser retrieval applies identity scope before lexical ranking. AWS retrieval sends a server-owned tenant/access filter to Knowledge Bases and checks returned source metadata again. The live S3 Vectors index and synthetic retrieval are verified. The authenticated tenant-filter test remains part of the Cognito Factory run. The original CLI corpus flags are declarations, not identity controls or anonymisation.
 2. **Analysis and design:** agents produce structured JSON. Required fields and cited source identifiers are validated.
 3. **Review and correction:** the reviewer can request changes. Two corrections after the first draft give at most seven agent calls. Distinct roles do not guarantee independent judgement or truth.
 4. **Human decision:** a favourable reviewer result pauses the run. It never authorises publication by itself.
@@ -200,7 +205,7 @@ Unknown cloud cost is `null`, not zero. The mock provider reports simulated zero
 
 ## Next steps
 
-The [proposed AWS architecture](docs/architecture.md) uses ECS Express Mode on Fargate for a FastAPI/browser container, Cognito verified by the API, Bedrock Converse, Bedrock Knowledge Bases backed by S3 Vectors, a local stdio MCP tool, ordinary S3 artifacts and CloudWatch logs with OpenTelemetry instrumentation. Cloud resources remain to be deployed and validated.
+The [AWS architecture](docs/architecture.md) uses ECS Express Mode on Fargate for a FastAPI/browser container, Cognito verified by the API, Bedrock Converse, Bedrock Knowledge Bases backed by S3 Vectors, a local stdio MCP tool, ordinary S3 artifacts and CloudWatch logs with OpenTelemetry instrumentation. The infrastructure, public service health endpoint and Knowledge Bases retrieval are live. Cognito browser sign-in and the authenticated Factory workflow remain the next validation steps.
 
 The [epic and feature backlog](docs/backlog/epics-features.md) organises the proposed delivery sequence into nine epics and 35 features; detailed items are not yet expanded. The existing [LAB technical issue specifications](docs/implementation-backlog.md) retain implementation acceptance detail and recorded evidence for Terraform, GitHub Actions with OpenID Connect, runbooks and workflow evaluation. These are complementary planning levels, not duplicate published GitHub issues; existing LAB identifiers remain unchanged.
 
