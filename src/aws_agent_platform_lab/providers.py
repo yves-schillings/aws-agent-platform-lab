@@ -335,11 +335,22 @@ class LangChainBedrockProvider(AwsBedrockProvider):
 
     def generate(self, role: str, prompt: str) -> str:
         """Call Bedrock through LangChain and return bounded text and token usage."""
-        _input(role, prompt)
+        payload = _input(role, prompt)
         self.last_usage = {}
         model = self._connect_model()
+        schema = payload.get("response_schema")
+        structured = isinstance(schema, dict) and schema.get("type") == "object"
         try:
             from langchain_core.messages import HumanMessage, SystemMessage
+            if structured:
+                # This tool is only a response envelope. No Python function,
+                # business tool or candidate code is executed. Runtime schema
+                # and citation validation still owns acceptance of the args.
+                model = model.bind_tools([{"toolSpec": {
+                    "name": "factory_role_result",
+                    "description": "Return the requested Factory role proposal in the specified schema.",
+                    "inputSchema": {"json": schema},
+                }}], tool_choice={"tool": {"name": "factory_role_result"}}, temperature=0)
             response = model.invoke([
                 SystemMessage(content=SYSTEM_MESSAGE), HumanMessage(content=prompt)
             ])
@@ -351,7 +362,16 @@ class LangChainBedrockProvider(AwsBedrockProvider):
             ) from None
         try:
             content = getattr(response, "content", None)
-            if isinstance(content, str):
+            if structured:
+                calls = getattr(response, "tool_calls", None)
+                stop = getattr(response, "response_metadata", {}).get("stopReason")
+                if (stop != "tool_use" or getattr(response, "invalid_tool_calls", None)
+                        or not isinstance(calls, list) or len(calls) != 1
+                        or calls[0].get("name") != "factory_role_result"
+                        or not isinstance(calls[0].get("args"), dict)):
+                    raise ProviderError("AWS did not return a complete structured role answer.")
+                text = json.dumps(calls[0]["args"], ensure_ascii=False, allow_nan=False)
+            elif isinstance(content, str):
                 text = content
             elif isinstance(content, list):
                 text = "".join(
