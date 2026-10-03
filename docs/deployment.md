@@ -1,6 +1,6 @@
 # AWS deployment runbook
 
-This runbook describes the operator commands used to deploy the synthetic lab and to promote later immutable images. On 3 October 2026, Terraform created the target resources in `eu-west-1`, the public ECS endpoint passed `/healthz`, and a synthetic corpus ingestion plus Knowledge Base retrieval completed. A real Cognito browser sign-in, authenticated Factory model run, separate-gate approval and GitHub Actions promotion remain validation steps; they are not inferred from the health check.
+This runbook describes the operator commands used to deploy the synthetic lab and to promote later immutable images. On 3 October 2026, Terraform created the target resources in `eu-west-1`, the public ECS endpoint passed `/healthz`, and the requester signed in to the five-role Factory. The first workflow attempt stopped because the combined JSON source lacked per-document permission metadata. Importing nine prepared text documents and their nine metadata sidecars corrected filtered retrieval: the unchanged alpha/internal filter returned five permitted passages. An authenticated Factory model run, separate-gate approval and GitHub Actions promotion remain validation steps; they are not inferred from the health check or a retrieval API result.
 
 ## Topology and boundaries
 
@@ -128,7 +128,7 @@ Terraform deliberately ignores later changes to the container image field: image
 
 ## 4. Ingest only the synthetic corpus and enroll test users
 
-Create a fresh local export directory using `python scripts/prepare_corpus.py --output artifacts/corpus-export-<unique-name>`. This produces six synthetic text documents and matching Bedrock metadata sidecars. Review the files, then the authorized ingestion operator may run:
+Create a fresh local export directory using `python scripts/prepare_corpus.py --output artifacts/corpus-export-<unique-name>`. This produces nine synthetic text documents and matching Bedrock metadata sidecars. Review the files, then the authorized ingestion operator may run:
 
 ```text
 aws s3 sync artifacts/corpus-export-<unique-name> s3://<corpus_bucket-output>/documents/ --region <verified-region>
