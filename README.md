@@ -26,13 +26,24 @@ The repository is public. Source availability does not establish that an AWS ser
   - The implemented cloud adapter targets Bedrock Knowledge Bases with S3 Vectors; local mode uses lexical search.
   - The guide separates executable offline checks from the live ingestion and inference still to verify.
 
-## Architecture at a glance
+## Architecture
 
-The editable Secloudis PowerPoint master remains outside this repository. These two PNG exports are documentation assets, licensed under [CC BY 4.0](docs/DIAGRAMS-LICENSE.md); the PowerPoint deck itself is not part of the source tree.
+The platform accepts a governed application-construction request through either an MCP (Model Context Protocol) client or the browser. Python and LangGraph coordinate the five roles, verify the caller’s access, retrieve only permitted source passages, call the selected model, and pause at the required human gates.
 
-![System architecture: construct an application](docs/images/system-architecture.png)
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/system-architecture.png" alt="System architecture for application construction" width="100%" />
+      <p><strong>Construction workflow.</strong> The diagram shows the client entry points, the Python/LangGraph Factory, the approval gates, document retrieval, model inference and the separate candidate-validation boundary.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/four-interfaces.png" alt="Four interfaces reaching the Python AI workflow" width="100%" />
+      <p><strong>Client access.</strong> Codex, Claude Code and Microsoft Copilot Studio call MCP tools. The React portal uses the FastAPI web endpoint. Both routes reach the same controlled Python workflow.</p>
+    </td>
+  </tr>
+</table>
 
-![Four interfaces reach the Python AI workflow](docs/images/four-interfaces.png)
+The diagrams are licensed under [CC BY 4.0](docs/DIAGRAMS-LICENSE.md), with attribution to Yves Schillings, Secloudis.
 
 ## MVP status
 
