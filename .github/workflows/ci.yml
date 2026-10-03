@@ -31,6 +31,12 @@ jobs:
         run: |
           python -m unittest discover -s tests -v
           python -m unittest discover -s scripts -p 'deploy_test.py' -v
+      - name: Check source correctness and boundary types with pinned tooling
+        run: |
+          python -m venv "$RUNNER_TEMP/code-quality"
+          "$RUNNER_TEMP/code-quality/bin/python" -m pip install -r requirements-quality.txt
+          "$RUNNER_TEMP/code-quality/bin/python" -m ruff check src tests scripts
+          "$RUNNER_TEMP/code-quality/bin/python" -m mypy
       - name: Audit pinned Python dependencies in isolated tooling environment
         id: dependency_audit
         run: |

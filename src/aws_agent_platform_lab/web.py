@@ -7,7 +7,6 @@ import ipaddress
 import logging
 import os
 from pathlib import Path
-import re
 import threading
 from typing import Literal, Any, Mapping
 from urllib.parse import urlsplit

@@ -17,7 +17,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import nullcontext
 from pathlib import Path
 
-from .models import canonical_bytes, sha256_bytes, ValidationError
+from .models import canonical_bytes, sha256_bytes
 from .providers import AwsBedrockProvider, MockProvider
 from .retrieval import BedrockRetriever, LocalRetriever, permitted, access_scope
 from .storage import LocalStore, S3Store, ConflictError
