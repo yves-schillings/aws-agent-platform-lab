@@ -333,7 +333,8 @@ def _gate(gate):
         action = decision["decision"]
         status = "rejected" if action == "reject" else "release_ready" if gate == "G4" else "running"
         return {"decisions": [*state["decisions"], decision], "status": status,
-                "events": _event(state, "gate_decided", gate=gate, decision=action)}
+                "events": _event(state, "gate_decided", gate=gate, decision=action,
+                                 simulated=decision["simulated"])}
     return pause
 
 
