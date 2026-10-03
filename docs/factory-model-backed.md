@@ -31,8 +31,9 @@ Terraform: `enable_factory = true` sets `FACTORY_ENABLED=true`, `FACTORY_PROVIDE
 
 ## Known MVP limits
 
-- Checkpoints use SQLite on the task's own disk: a replaced ECS task loses waiting runs. DynamoDB checkpoints are not implemented.
-- The `/factory` browser page remains local-only; on AWS the Factory is reached through its API with a bearer token.
+- **Local persistence:** offline development uses SQLite checkpoints.
+- **AWS persistence:** the configured Factory uses shared DynamoDB checkpoints and a run registry for ownership and per-run leases. Both Fargate tasks can access the same waiting run. Live recovery and concurrent-decision behavior still require retained acceptance evidence.
+- **Browser access:** `/factory` supports both local mode and enabled AWS mode. AWS requests use Cognito authentication. Page availability does not establish successful sign-in or model execution.
 - Choose `aws` for the direct Boto3 Converse adapter or `aws-langchain` for `ChatBedrockConverse`. Both use the configured AWS region, model, profile and bounded timeout settings.
 
 ## Tests
