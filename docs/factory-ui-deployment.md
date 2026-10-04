@@ -1,6 +1,6 @@
 # Factory UI deployment verification
 
-- **Deployed source:** [`9c253682839f23d641ef701bb4ccc2af8d27a8e3`](https://github.com/yves-schillings/aws-agent-platform-lab/tree/9c253682839f23d641ef701bb4ccc2af8d27a8e3).
+- **Deployed source:** Historical revision `9c253682839f23d641ef701bb4ccc2af8d27a8e3`; [same source with corrected attribution](https://github.com/yves-schillings/aws-agent-platform-lab/tree/295c239193448576b9ca7b65944a26618ce711db). The repository history was rewritten to correct authorship; the source tree and recorded deployment evidence are unchanged.
 - **Image:** ECR (Elastic Container Registry) repository `aws-agent-lab`, immutable digest `sha256:9c1df678ac059a0b8656f55a6c51a5e12a0d3ade1dcb9db44e3100c734dc745b`.
 - **Image tag:** `9c253682839f23d641ef701bb4ccc2af8d27a8e3`. GitHub stores the [Dockerfile](../Dockerfile) and [build workflow](../.github/workflows/deploy.yml); the image binary is held in private ECR rather than GitHub Packages.
 - **Promotion:** The image was built and pushed locally, then promoted with [`deploy_express.py`](../scripts/deploy_express.py). This record does not claim that GitHub Actions performed this promotion.
