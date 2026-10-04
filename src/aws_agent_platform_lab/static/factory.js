@@ -91,7 +91,7 @@ function showValue(value, depth = 0) {
 function render() {
   const pending = state?.pending_gate, decisions = state?.decisions || [];
   byId("factory-status").textContent = state ? label(state.status) : "Ready";
-  byId("factory-meta").textContent = state ? `Run ${state.run_id} · ${label(state.company_id)} · ${state.project_id}` : "Start a workflow, or resume the last run saved for this identity.";
+  byId("factory-meta").textContent = state ? `Run ID: ${state.run_id} · Company: ${label(state.company_id)} · Project: ${state.project_id}` : "Start a workflow, or resume the last run saved for this identity.";
   for (const item of document.querySelectorAll("[data-gate]")) {
     const decision = decisions.find(d => d.gate === item.dataset.gate), active = pending?.gate === item.dataset.gate;
     item.classList.toggle("complete", decision?.decision === "approve"); item.classList.toggle("rejected", decision?.decision === "reject"); item.classList.toggle("pending", active);
