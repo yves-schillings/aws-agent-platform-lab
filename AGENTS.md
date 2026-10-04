@@ -4,6 +4,7 @@
 
 - The presentation and publication title is **Multi-Agentic Workflow on AWS**.
 - Attribute the work to **Yves Schillings, Secloudis** and refer to https://secloudis.com/.
+- Use **Yves Schillings** as the Git author name with the owner's existing Git email. Do not add AI-tool co-author trailers, generated-by signatures or session links to commits or pull requests unless the owner explicitly requests them.
 - Use the actual approved Secloudis slide layout, logo, typography and visual assets for published presentation material. Preserve source reference files.
 - Complete and verify the AWS/Bedrock deployment first. An Azure edition is a separate later phase.
 - Keep client identities, private source documents and credentials outside this repository and public material.
