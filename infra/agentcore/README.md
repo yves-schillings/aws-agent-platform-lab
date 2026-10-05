@@ -8,7 +8,8 @@
 - **Restricted identities**
   - The Runtime execution role permits its image pull, logs, approved model calls, retrieval and shared state operations.
   - A separate engineering caller role can invoke only this Runtime and its DEFAULT endpoint.
-  - A resource policy denies other caller identities. The engineering role trusts only the named temporary IAM test operator. Root sessions cannot assume roles; the acceptance harness creates a role-only operator, keeps its key in memory, and deletes its key, inline policy and user afterwards. Routine production access requires a separate operator identity design.
+  - Runtime and DEFAULT endpoint resource policies restrict ordinary IAM callers. A live test denied an unapproved IAM user even when its identity policy allowed invocation. Administrative root requests reached the handler; root isolation is not claimed.
+  - The engineering role trusts only the named temporary IAM test operator. Root sessions cannot assume roles; the acceptance harness creates a role-only operator, keeps its key in memory, and deletes its key, inline policy and user afterwards. Routine production access requires a separate operator identity design.
   - Company and approval authority still comes from verified Cognito groups and server-owned policy.
 - **Cost and session lifetime**
   - The Runtime uses managed on-demand sessions with a 60-second idle timeout and a 900-second maximum instance lifetime.
