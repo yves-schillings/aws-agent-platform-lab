@@ -17,6 +17,12 @@ variable "image_uri" { type = string }
 variable "repository_arn" { type = string }
 variable "user_pool_id" { type = string }
 variable "application_permissions" { type = any }
+variable "portal_task_role_arn" { type = string }
+variable "portal_client_id" { type = string }
+variable "enable_test_password_auth" {
+  type    = bool
+  default = false
+}
 variable "runtime_environment" {
   type      = map(string)
   sensitive = true
@@ -28,7 +34,7 @@ resource "aws_cognito_user_pool_client" "test" {
   name                          = "secloudis-agentcore-synthetic-test"
   user_pool_id                  = var.user_pool_id
   generate_secret               = false
-  explicit_auth_flows           = ["ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
+  explicit_auth_flows           = var.enable_test_password_auth ? ["ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"] : ["ALLOW_REFRESH_TOKEN_AUTH"]
   prevent_user_existence_errors = "ENABLED"
 }
 resource "aws_iam_role" "runtime" {
@@ -73,8 +79,8 @@ resource "aws_bedrockagentcore_agent_runtime" "factory" {
     LOCAL_DEMO_MODE         = "false"
     AGENTCORE_LOCAL_TEST    = "false"
     AGENTCORE_INBOUND_AUTH  = "iam"
-    COGNITO_CLIENT_ID       = aws_cognito_user_pool_client.test.id
-    COGNITO_REQUIRED_SCOPES = "aws.cognito.signin.user.admin"
+    COGNITO_CLIENT_ID       = var.portal_client_id
+    COGNITO_REQUIRED_SCOPES = "openid"
     LAB_DATA_DIR            = "/tmp/factory"
   })
   depends_on = [aws_iam_role_policy.runtime]
@@ -90,9 +96,9 @@ resource "aws_iam_role_policy" "caller" {
 resource "aws_bedrockagentcore_resource_policy" "caller_only" {
   resource_arn = aws_bedrockagentcore_agent_runtime.factory.agent_runtime_arn
   policy = jsonencode({ Version = "2012-10-17", Statement = [
-    { Effect = "Allow", Principal = { AWS = aws_iam_role.caller.arn }, Action = "bedrock-agentcore:InvokeAgentRuntime", Resource = aws_bedrockagentcore_agent_runtime.factory.agent_runtime_arn },
+    { Effect = "Allow", Principal = { AWS = [aws_iam_role.caller.arn, var.portal_task_role_arn] }, Action = "bedrock-agentcore:InvokeAgentRuntime", Resource = aws_bedrockagentcore_agent_runtime.factory.agent_runtime_arn },
     { Effect = "Deny", Principal = "*", Action = "bedrock-agentcore:InvokeAgentRuntime", Resource = aws_bedrockagentcore_agent_runtime.factory.agent_runtime_arn,
-    Condition = { ArnNotEquals = { "aws:PrincipalArn" = aws_iam_role.caller.arn } } }
+    Condition = { ArnNotEquals = { "aws:PrincipalArn" = [aws_iam_role.caller.arn, var.portal_task_role_arn] } } }
   ] })
 }
 # Invocation targets an endpoint as well as its Runtime. Apply the same boundary
@@ -100,9 +106,9 @@ resource "aws_bedrockagentcore_resource_policy" "caller_only" {
 resource "aws_bedrockagentcore_resource_policy" "endpoint_caller_only" {
   resource_arn = "${aws_bedrockagentcore_agent_runtime.factory.agent_runtime_arn}/runtime-endpoint/DEFAULT"
   policy = jsonencode({ Version = "2012-10-17", Statement = [
-    { Effect = "Allow", Principal = { AWS = aws_iam_role.caller.arn }, Action = "bedrock-agentcore:InvokeAgentRuntime", Resource = "${aws_bedrockagentcore_agent_runtime.factory.agent_runtime_arn}/runtime-endpoint/DEFAULT" },
+    { Effect = "Allow", Principal = { AWS = [aws_iam_role.caller.arn, var.portal_task_role_arn] }, Action = "bedrock-agentcore:InvokeAgentRuntime", Resource = "${aws_bedrockagentcore_agent_runtime.factory.agent_runtime_arn}/runtime-endpoint/DEFAULT" },
     { Effect = "Deny", Principal = "*", Action = "bedrock-agentcore:InvokeAgentRuntime", Resource = "${aws_bedrockagentcore_agent_runtime.factory.agent_runtime_arn}/runtime-endpoint/DEFAULT",
-    Condition = { ArnNotEquals = { "aws:PrincipalArn" = aws_iam_role.caller.arn } } }
+    Condition = { ArnNotEquals = { "aws:PrincipalArn" = [aws_iam_role.caller.arn, var.portal_task_role_arn] } } }
   ] })
 }
 output "runtime_arn" { value = aws_bedrockagentcore_agent_runtime.factory.agent_runtime_arn }
@@ -110,3 +116,15 @@ output "runtime_id" { value = aws_bedrockagentcore_agent_runtime.factory.agent_r
 output "caller_role_arn" { value = aws_iam_role.caller.arn }
 output "test_client_id" { value = aws_cognito_user_pool_client.test.id }
 
+
+# The portal signs Runtime calls with its ECS task credentials; human Cognito
+# identity is independently checked again by the Runtime application.
+resource "aws_iam_role_policy" "portal_runtime" {
+  name = "secloudis-agentcore-portal-invocation"
+  role = split("/", var.portal_task_role_arn)[1]
+  policy = jsonencode({ Version = "2012-10-17", Statement = [{
+    Effect = "Allow", Action = "bedrock-agentcore:InvokeAgentRuntime",
+    Resource = [aws_bedrockagentcore_agent_runtime.factory.agent_runtime_arn,
+    "${aws_bedrockagentcore_agent_runtime.factory.agent_runtime_arn}/runtime-endpoint/DEFAULT"]
+  }] })
+}
