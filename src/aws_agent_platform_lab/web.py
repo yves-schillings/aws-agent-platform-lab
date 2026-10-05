@@ -174,7 +174,10 @@ def create_app(*, service: Any = None, environ: Mapping[str, str] | None = None,
         header = request.headers.get("Authorization", "")
         if not header.startswith("Bearer ") or not header[7:].strip():
             raise AuthError("Sign in with a Cognito access token.")
-        return verifier.verify(header[7:].strip())
+        token = header[7:].strip()
+        principal = verifier.verify(token)
+        request.state.verified_access_token = token
+        return principal
 
     def call_service(method: str, *args):
         """Call the configured baseline service and redact unexpected exception text."""
@@ -280,13 +283,13 @@ def create_app(*, service: Any = None, environ: Mapping[str, str] | None = None,
                       principal: Principal = Depends(factory_principal)):
         """Start an owned Factory run that pauses at G1 Scope."""
         return call_factory("start_run", principal, payload.request_text.strip(),
-                            access_token=request.headers.get("Authorization", "")[7:])
+                            access_token=getattr(request.state, "verified_access_token", None))
 
     @app.get("/api/factory/runs/{run_id}")
     def factory_read(run_id: str, request: Request, principal: Principal = Depends(factory_principal)):
         """Inspect an owned Factory run through the common service boundary."""
         return call_factory("get_run", principal, run_id,
-                            access_token=request.headers.get("Authorization", "")[7:])
+                            access_token=getattr(request.state, "verified_access_token", None))
 
     @app.post("/api/factory/runs/{run_id}/decision")
     def factory_decide(run_id: str, payload: FactoryDecisionInput, request: Request,
@@ -294,7 +297,7 @@ def create_app(*, service: Any = None, environ: Mapping[str, str] | None = None,
         """Forward the explicit gate/hash decision for locked server-side validation."""
         return call_factory("decide_run", principal, run_id, payload.gate,
                             payload.artifact_hash, payload.decision, payload.reason.strip(),
-                            access_token=request.headers.get("Authorization", "")[7:])
+                            access_token=getattr(request.state, "verified_access_token", None))
 
     @app.get("/auth/config")
     def auth_config():

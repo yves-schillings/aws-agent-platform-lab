@@ -43,6 +43,13 @@ class RuntimeFixture:
 
 
 class RuntimeTests(RuntimeFixture, unittest.TestCase):
+    def test_oversized_chunked_body_is_rejected_without_echo(self):
+        response = self.client.post('/invocations', content=iter([b'x' * 40000, b'y' * 40000]),
+                                    headers={'Content-Type': 'application/json'})
+        self.assertEqual(response.status_code, 413)
+        self.assertEqual(response.json(), {'detail': 'Invocation is too large.'})
+        self.assertEqual(response.headers['Cache-Control'], 'no-store')
+
     def invoke(self, body, claims=None):
         return self.client.post("/invocations", json={"access_token": self.token(claims), **body})
 
