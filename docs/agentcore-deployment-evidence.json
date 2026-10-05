@@ -197,6 +197,13 @@
       "Unapproved IAM user denied despite identity policy permitting this Runtime invocation",
       "Approved IAM caller reaches handler but missing human token is denied",
       "Invalid human token denied without running agents"
-    ]
+    ],
+    "ecs_deployment": {
+      "status": "SUCCESSFUL",
+      "target_running_tasks": 2,
+      "target_traffic_percent": 100,
+      "previous_running_tasks": 0,
+      "target_revision_id": "0084540287011869850"
+    }
   }
 }
