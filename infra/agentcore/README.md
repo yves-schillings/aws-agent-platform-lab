@@ -25,3 +25,23 @@
   - Record Runtime readiness and exact image digest separately from successful authenticated workflow execution.
   - Keep a bounded demonstration online only for its agreed review period. Remove test accounts and destroy this separate stack when it is no longer required; the shared existing platform is outside its destruction scope.
 
+
+
+## Portal integration
+
+- Set `portal_task_role_arn` to the existing ECS application task role.
+- Set `portal_client_id` to the existing portal Cognito client. Runtime validates
+  that client's signed access tokens with the `openid` scope.
+- The Runtime and DEFAULT endpoint policies allow the portal task role and the
+  narrowly scoped engineering role; all other ordinary IAM callers are denied.
+- `enable_test_password_auth` defaults to false. Only enable it temporarily for
+  an explicitly planned engineering test, and disable it immediately afterwards.
+- Set the portal environment `FACTORY_BACKEND=agentcore`,
+  `AGENTCORE_RUNTIME_ARN` and `AGENTCORE_RUNTIME_QUALIFIER=DEFAULT`.
+- Rebuild the portal image from the reviewed source and deploy its immutable
+  digest. Preserve the existing environment, secret references and ingress.
+- The deleted engineering IAM operator must be recreated with only AssumeRole
+  permission for a new engineering test; delete its key, policy and user afterwards.
+- The portal uses its ECS task role directly and does not need that operator.
+- Recheck both identities through browser login and G1–G4 before claiming a
+  verified portal integration. MCP routing remains separate.
