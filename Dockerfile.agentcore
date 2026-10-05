@@ -7,7 +7,9 @@ RUN groupadd --gid 10001 app && useradd --uid 10001 --gid app --create-home app
 COPY requirements.txt pyproject.toml README.md ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ ./src/
-RUN pip install --no-cache-dir --no-deps .
+# Run the checked-in application directly; dependencies are pinned above.
+# This also keeps the packaged corpus relative to the application source.
+ENV PYTHONPATH=/app/src
 COPY corpus/ ./corpus/
 COPY scenarios/ ./scenarios/
 USER 10001:10001
