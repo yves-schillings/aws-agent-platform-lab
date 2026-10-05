@@ -50,11 +50,13 @@ resource "aws_iam_role_policy" "runtime" {
     { Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents"], Resource = "arn:aws:logs:${var.region}:${var.account_id}:log-group:/aws/bedrock-agentcore/runtimes/secloudis_factory_*:log-stream:*" }
   ]) })
 }
+# Root sessions cannot assume roles. The acceptance harness creates this narrowly
+# scoped IAM operator temporarily, then removes its key, policy and user.
 resource "aws_iam_role" "caller" {
   name = "secloudis-agentcore-engineering-caller"
   assume_role_policy = jsonencode({ Version = "2012-10-17", Statement = [{
     Effect    = "Allow", Action = "sts:AssumeRole", Principal = { AWS = "arn:aws:iam::${var.account_id}:root" },
-    Condition = { ArnEquals = { "aws:PrincipalArn" = "arn:aws:iam::${var.account_id}:root" } }
+    Condition = { ArnEquals = { "aws:PrincipalArn" = "arn:aws:iam::${var.account_id}:user/secloudis-agentcore-test-operator" } }
   }] })
 }
 resource "aws_bedrockagentcore_agent_runtime" "factory" {
@@ -97,3 +99,4 @@ output "runtime_arn" { value = aws_bedrockagentcore_agent_runtime.factory.agent_
 output "runtime_id" { value = aws_bedrockagentcore_agent_runtime.factory.agent_runtime_id }
 output "caller_role_arn" { value = aws_iam_role.caller.arn }
 output "test_client_id" { value = aws_cognito_user_pool_client.test.id }
+
