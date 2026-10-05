@@ -74,3 +74,6 @@ docs/secloudis-article.md
 docs/slides/
 docs/public/
 docs/technical-guide.md
+
+# Local AI-tool settings are not public application source.
+.claude/
