@@ -85,6 +85,9 @@ class FencedCheckpointClient:
 
     def __init__(self, client, lease, table_name):
         self.client, self.lease, self.table_name = client, lease, table_name
+        # LangGraph may submit pending writes and checkpoints from different threads.
+        # Their transactions all check the same lease item and can conflict in AWS.
+        self._write_lock = threading.Lock()
 
     def __getattr__(self, name):
         # Fail closed if a future saver changes its write implementation.
@@ -94,31 +97,44 @@ class FencedCheckpointClient:
 
     def put_item(self, **params):
         """Write only this run's checkpoint and only while its lease is valid."""
+        with self._write_lock:
+            return self._put_item(**params)
+
+    def _put_item(self, **params):
+        """Serialize one operation's writes and retry only atomic transaction conflicts."""
         pk = params.get("Item", {}).get("PK", {}).get("S", "")
         run_id = self.lease.run_id
         if (params.get("TableName") != self.table_name or not
                 (pk == f"CHECKPOINT_{run_id}" or pk.startswith(f"CHUNK_{run_id}#")
                  or pk.startswith(f"WRITES_{run_id}#"))):
             raise ServiceError("Factory checkpoint does not match the leased run", 503)
-        try:
-            self.client.transact_write_items(TransactItems=[
-                {"ConditionCheck": self.lease.condition()}, {"Put": params}])
-        except ClientError as exc:
-            reasons = exc.response.get("CancellationReasons", [])
-            # Operational codes only: never log checkpoint data or request credentials.
-            logging.getLogger(__name__).warning(
-                "Factory checkpoint transaction refused: aws_code=%s cancellation_codes=%s",
-                exc.response.get("Error", {}).get("Code", "unknown"),
-                [reason.get("Code", "unknown") for reason in reasons])
-            # Preserve the saver's existing idempotent-put semantics only when
-            # the lease check passed and the checkpoint item already exists.
-            if (len(reasons) == 2 and reasons[0].get("Code") == "None"
-                    and reasons[1].get("Code") == "ConditionalCheckFailed"):
-                raise ClientError({"Error": {"Code": "ConditionalCheckFailedException",
-                                               "Message": "Checkpoint already exists"}}, "PutItem") from None
-            self.lease.lost.set()
-            raise ServiceError("Factory checkpoint write refused; reload the run before retrying", 503) from None
-        return {}
+        for attempt in range(5):
+            try:
+                self.client.transact_write_items(TransactItems=[
+                    {"ConditionCheck": self.lease.condition()}, {"Put": params}])
+                return {}
+            except ClientError as exc:
+                reasons = exc.response.get("CancellationReasons", [])
+                codes = [reason.get("Code", "unknown") for reason in reasons]
+                # A cancelled atomic transaction applied no writes. Recheck the
+                # lease on every attempt; never retry a failed lease condition.
+                if (exc.response.get("Error", {}).get("Code") == "TransactionCanceledException"
+                        and "TransactionConflict" in codes
+                        and set(codes) <= {"None", "TransactionConflict"} and attempt < 4):
+                    time.sleep(0.05 * (2 ** attempt))
+                    continue
+                # Operational codes only: never log data or request credentials.
+                logging.getLogger(__name__).warning(
+                    "Factory checkpoint transaction refused: aws_code=%s cancellation_codes=%s",
+                    exc.response.get("Error", {}).get("Code", "unknown"), codes)
+                # Keep the saver's idempotent-put semantics only when the lease
+                # passed and the checkpoint item already exists.
+                if (len(reasons) == 2 and reasons[0].get("Code") == "None"
+                        and reasons[1].get("Code") == "ConditionalCheckFailed"):
+                    raise ClientError({"Error": {"Code": "ConditionalCheckFailedException",
+                                                   "Message": "Checkpoint already exists"}}, "PutItem") from None
+                self.lease.lost.set()
+                raise ServiceError("Factory checkpoint write refused; reload the run before retrying", 503) from None
 
 
 class DynamoRunRegistry:
