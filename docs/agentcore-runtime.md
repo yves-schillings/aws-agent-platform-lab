@@ -4,6 +4,7 @@
   - Run the existing Python Factory in Amazon Bedrock AgentCore Runtime. Amazon Bedrock still supplies model inference; AgentCore hosts the agent application around those model calls.
   - Preserve the five AI agents (Analyst, Architect, Code Author, Tester and Reviewer), LangGraph orchestration and four human approval gates.
   - Keep the current browser entry point and FastAPI backend. The inbound MCP (Model Context Protocol) server remains separate; its AgentCore routing is not implemented by this change.
+  - A minimum cloud deployment is verified below. Its engineering caller uses a separate Cognito test client; the deployed ECS browser has not been switched to the source connector.
 
 ## Implemented call path
 
@@ -65,24 +66,43 @@
 - **Engineering IAM access**
   - IAM alone identifies a workload, not a human gate approver. This Factory intentionally requires a verified human Cognito token even behind the IAM perimeter.
 
-## Verification and remaining acceptance work
+## Verified minimum deployment on 5 October 2026
 
-- **Offline verification**
-  - On 5 October 2026, all 168 application tests and eight deployment-script tests passed locally. Ruff passed across application, tests and scripts; the existing incremental Mypy check passed for its two configured identity/model files.
-  - The six new AgentCore tests are included in that application total. Docker Desktop's Linux daemon was unavailable during this check, so no AgentCore ARM64 image build or cloud execution is claimed.
-  - `tests/test_agentcore.py` exercises the Runtime with locally signed test tokens and mock inference, including the full four-gate journey, cross-company denial, owner/approver separation and stale artifact decisions.
-  - The browser-to-backend-to-connector-to-Runtime test uses an injected transport. It performs no AWS request and establishes no live Cognito or AgentCore deployment.
-  - A restart test reopens local SQLite state. Real DynamoDB cross-session persistence still requires cloud acceptance testing.
-- **Cloud acceptance**
-  - Build and inspect the ARM64 image; publish its exact digest; configure a restricted Runtime and caller role.
-  - Verify unauthorised IAM callers are denied before the container, and missing, expired or wrong-client human tokens are denied inside it.
-  - Complete a synthetic run with a requester and distinct approver across G1–G4 and across separate Runtime sessions.
-  - Record Bedrock inference, DynamoDB recovery, logs with no tokens, response latency and cloud cost before updating the central article status.
+- **Runtime and source**
+  - Runtime `secloudis_factory_minimum-RPuPF760W2` is READY in `eu-west-1`, with version 3 served by DEFAULT.
+  - The exact ARM64 application source is revision `42fc116abbeedc9fa65983b4cfeaba4bd69e7c91`.
+  - Its deployed image manifest is `sha256:256f7c30df34bb18ba5be72f0e53bae2899737500496e29df01134d76287f82d`.
+  - The eight-resource Terraform stack reuses the existing Cognito pool, Bedrock inference and retrieval, and DynamoDB state. The container runs as user `10001:10001` with a 60-second idle timeout and 900-second maximum instance lifetime.
+  - [Dated machine-readable evidence](agentcore-deployment-evidence.json) records the verified source, image, run, model usage, request identifiers and explicit limits.
+- **Real synthetic workflow**
+  - Run `0fcf900126e04e5db7367cdf1c60966e` reached `release_ready` with five model-backed artifacts and four gate decisions.
+  - Analyst, Architect, Code Author, Tester and Reviewer called Amazon Nova Lite through LangChain on Bedrock.
+  - The requester and approver had distinct real Cognito subjects. Decisions were scripted API (Application Programming Interface) acceptance checks, not human review of the generated content.
+  - Shared DynamoDB state was read and advanced across four Runtime sessions.
+  - Cross-company access, owner self-approval and stale artifact hashes were denied.
+  - The five model calls reported 11,795 input tokens and 1,078 output tokens. The billed cloud cost has not been verified.
+  - Proposed code and tests remain inert text; no generated application was built, executed or deployed.
+- **Identity boundary**
+  - An unapproved IAM user was denied even with an identity policy permitting this Runtime invocation.
+  - An approved IAM caller reached the handler, which denied missing and invalid human access tokens.
+  - Runtime and DEFAULT endpoint policies are both configured. Administrative root calls reached the handler; root isolation is not demonstrated.
+  - All three synthetic Cognito users and the disposable IAM operator, key and inline policy were removed after acceptance.
+- **Checks and observed defect**
+  - All 171 application tests and eight deployment-script tests passed locally. Ruff passed across source, tests and scripts; Mypy passed for its two configured files; the separate Terraform stack validated.
+  - The first cloud run exposed DynamoDB transaction conflicts between checkpoint writes. The deployed fix serializes one operation's writes and retries only atomic transaction conflicts, at most five times, while rechecking the lease.
+  - A failed lease condition or exhausted retry budget still refuses the write. Two additional offline tests cover recovery and bounded failure.
+  - The inspected sample of 176 CloudWatch events contained no JWT (JSON Web Token) pattern. That sampled result is not a claim about every possible log configuration.
+- **Remaining integrations**
+  - The existing ECS (Elastic Container Service) browser is not routed to AgentCore. Connecting it requires alignment of its Cognito client and scope, backend invocation permissions, and the `FACTORY_BACKEND=agentcore` deployment setting.
+  - AgentCore routing for the inbound MCP server remains unimplemented.
+  - A direct Cognito JWT cloud authorizer and Microsoft Entra token integration remain unverified. No Microsoft tenant was created.
+  - Expired and wrong-client tokens have offline validation coverage; those two negative cases were not exercised against the live Runtime.
+  - Cross-session shared-state access was verified; forced Runtime restart recovery remains a separate operational test.
 - **Retry limitation**
   - Automatic SDK retries are disabled because a start or decision may succeed before a transport timeout.
   - Reload a known run before retrying a decision. A timed-out start can leave a run whose identifier was not returned; idempotent start recovery is not yet implemented.
-- **Delivery boundary**
-  - This source change does not create AWS resources, replace the existing ECS service, deploy an AgentCore Runtime, update the article or publish an Entra integration claim.
+- **Article review**
+  - The deployment evidence supports a revised article status section. Its Word review document remains subject to user approval before WordPress publication.
 
 ## Official service references
 
