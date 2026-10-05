@@ -1,0 +1,14 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "InvokeApprovedFactoryRuntime",
+      "Effect": "Allow",
+      "Action": "bedrock-agentcore:InvokeAgentRuntime",
+      "Resource": [
+        "<AGENTCORE_RUNTIME_ARN>",
+        "<AGENTCORE_RUNTIME_ARN>/runtime-endpoint/DEFAULT"
+      ]
+    }
+  ]
+}

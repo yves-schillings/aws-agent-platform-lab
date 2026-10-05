@@ -12,6 +12,8 @@ The delivery sequence is AWS first: deploy and verify this Bedrock implementatio
 
 ## Factory browser page
 
+- **AgentCore source integration:** The `Agent-Core` branch adds an Amazon Bedrock AgentCore Runtime adapter while preserving Cognito and the existing human gates. See [configuration, authentication variants and acceptance boundaries](docs/agentcore-runtime.md). Offline tests do not establish a live AgentCore deployment.
+
 - **Five AI roles:** The Factory coordinates Analyst, Architect, Code Author, Tester and Reviewer through LangGraph.
 - **Four human gates:** Scope, design, quality and release proposals require an authorised decision on the exact artifact.
 - **Browser entry:** The `/factory` page displays the workflow and a **Sign in** button before authentication. Starting or resuming a run requires a verified Cognito identity.

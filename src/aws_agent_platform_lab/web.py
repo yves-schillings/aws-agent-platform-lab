@@ -105,6 +105,11 @@ def create_app(*, service: Any = None, environ: Mapping[str, str] | None = None,
     app.state.local = local
     app.state.factory_service = factory_service
     factory_enabled = str(env.get("FACTORY_ENABLED", "false")).strip().lower() == "true"
+    factory_backend = env.get("FACTORY_BACKEND", "local")
+    if factory_backend not in {"local", "agentcore"}:
+        raise ValueError("FACTORY_BACKEND must be local or agentcore")
+    if local and factory_backend == "agentcore":
+        raise ValueError("Simulated local identities cannot invoke AgentCore")
     factory_lock = threading.Lock()
     factory_identities = {
         **LOCAL_IDENTITIES,
@@ -200,15 +205,21 @@ def create_app(*, service: Any = None, environ: Mapping[str, str] | None = None,
             raise AuthError("Choose a simulated Company 1, Company 2 or Company 3 identity.")
         return factory_identities[chosen]
 
-    def call_factory(method: str, *args):
-        """Initialize the local Factory once and translate bounded service failures."""
+    def call_factory(method: str, *args, access_token=None):
+        """Initialize the selected Factory adapter and translate bounded failures."""
         from .services import ServiceError
         try:
             with factory_lock:
                 if app.state.factory_service is None:
-                    from .factory import service_from_environment
-                    root = Path(env.get("LAB_DATA_DIR", ".lab-data")) / "factory"
-                    app.state.factory_service = service_from_environment(root, env)
+                    if factory_backend == "agentcore":
+                        from .agentcore_client import AgentCoreFactoryClient
+                        app.state.factory_service = AgentCoreFactoryClient(env)
+                    else:
+                        from .factory import service_from_environment
+                        root = Path(env.get("LAB_DATA_DIR", ".lab-data")) / "factory"
+                        app.state.factory_service = service_from_environment(root, env)
+            if factory_backend == "agentcore":
+                return app.state.factory_service.invoke(method, args[0], access_token, *args[1:])
             return getattr(app.state.factory_service, method)(*args)
         except ServiceError as exc:
             return JSONResponse({"detail": str(exc)}, status_code=exc.status_code)
@@ -265,21 +276,25 @@ def create_app(*, service: Any = None, environ: Mapping[str, str] | None = None,
         return {"simulated": False, "mode": "aws", "engine": "langgraph", "identities": []}
 
     @app.post("/api/factory/runs", status_code=201)
-    def factory_start(payload: FactoryInput, principal: Principal = Depends(factory_principal)):
-        """Start an owned local Factory run that pauses at G1 Scope."""
-        return call_factory("start_run", principal, payload.request_text.strip())
+    def factory_start(payload: FactoryInput, request: Request,
+                      principal: Principal = Depends(factory_principal)):
+        """Start an owned Factory run that pauses at G1 Scope."""
+        return call_factory("start_run", principal, payload.request_text.strip(),
+                            access_token=request.headers.get("Authorization", "")[7:])
 
     @app.get("/api/factory/runs/{run_id}")
-    def factory_read(run_id: str, principal: Principal = Depends(factory_principal)):
+    def factory_read(run_id: str, request: Request, principal: Principal = Depends(factory_principal)):
         """Inspect an owned Factory run through the common service boundary."""
-        return call_factory("get_run", principal, run_id)
+        return call_factory("get_run", principal, run_id,
+                            access_token=request.headers.get("Authorization", "")[7:])
 
     @app.post("/api/factory/runs/{run_id}/decision")
-    def factory_decide(run_id: str, payload: FactoryDecisionInput,
+    def factory_decide(run_id: str, payload: FactoryDecisionInput, request: Request,
                        principal: Principal = Depends(factory_principal)):
         """Forward the explicit gate/hash decision for locked server-side validation."""
         return call_factory("decide_run", principal, run_id, payload.gate,
-                            payload.artifact_hash, payload.decision, payload.reason.strip())
+                            payload.artifact_hash, payload.decision, payload.reason.strip(),
+                            access_token=request.headers.get("Authorization", "")[7:])
 
     @app.get("/auth/config")
     def auth_config():

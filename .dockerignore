@@ -1,6 +1,7 @@
 # Exclude credentials, local state and engineering output from the image build context.
 *
 !Dockerfile
+!Dockerfile.agentcore
 !requirements.txt
 !pyproject.toml
 !README.md
