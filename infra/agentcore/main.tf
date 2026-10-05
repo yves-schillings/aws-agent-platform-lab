@@ -95,6 +95,16 @@ resource "aws_bedrockagentcore_resource_policy" "caller_only" {
     Condition = { ArnNotEquals = { "aws:PrincipalArn" = aws_iam_role.caller.arn } } }
   ] })
 }
+# Invocation targets an endpoint as well as its Runtime. Apply the same boundary
+# to DEFAULT so an identity policy cannot bypass the designated caller there.
+resource "aws_bedrockagentcore_resource_policy" "endpoint_caller_only" {
+  resource_arn = "${aws_bedrockagentcore_agent_runtime.factory.agent_runtime_arn}/runtime-endpoint/DEFAULT"
+  policy = jsonencode({ Version = "2012-10-17", Statement = [
+    { Effect = "Allow", Principal = { AWS = aws_iam_role.caller.arn }, Action = "bedrock-agentcore:InvokeAgentRuntime", Resource = "${aws_bedrockagentcore_agent_runtime.factory.agent_runtime_arn}/runtime-endpoint/DEFAULT" },
+    { Effect = "Deny", Principal = "*", Action = "bedrock-agentcore:InvokeAgentRuntime", Resource = "${aws_bedrockagentcore_agent_runtime.factory.agent_runtime_arn}/runtime-endpoint/DEFAULT",
+    Condition = { ArnNotEquals = { "aws:PrincipalArn" = aws_iam_role.caller.arn } } }
+  ] })
+}
 output "runtime_arn" { value = aws_bedrockagentcore_agent_runtime.factory.agent_runtime_arn }
 output "runtime_id" { value = aws_bedrockagentcore_agent_runtime.factory.agent_runtime_id }
 output "caller_role_arn" { value = aws_iam_role.caller.arn }
