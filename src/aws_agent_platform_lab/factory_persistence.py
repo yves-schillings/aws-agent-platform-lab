@@ -8,6 +8,7 @@ calls exactly once, and an interrupted run still requires operator recovery.
 from contextlib import contextmanager
 from copy import copy
 import math
+import logging
 import re
 import threading
 import time
@@ -104,6 +105,11 @@ class FencedCheckpointClient:
                 {"ConditionCheck": self.lease.condition()}, {"Put": params}])
         except ClientError as exc:
             reasons = exc.response.get("CancellationReasons", [])
+            # Operational codes only: never log checkpoint data or request credentials.
+            logging.getLogger(__name__).warning(
+                "Factory checkpoint transaction refused: aws_code=%s cancellation_codes=%s",
+                exc.response.get("Error", {}).get("Code", "unknown"),
+                [reason.get("Code", "unknown") for reason in reasons])
             # Preserve the saver's existing idempotent-put semantics only when
             # the lease check passed and the checkpoint item already exists.
             if (len(reasons) == 2 and reasons[0].get("Code") == "None"
