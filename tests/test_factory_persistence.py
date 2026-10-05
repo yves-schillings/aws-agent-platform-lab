@@ -10,6 +10,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import boto3
+from botocore.exceptions import ClientError
 from moto import mock_aws
 from langgraph_checkpoint_aws import DynamoDBSaver
 
@@ -80,6 +81,37 @@ class FactoryLeaseTests(unittest.TestCase):
                     Item={"PK": {"S": "CHECKPOINT_" + self.run_id}, "SK": {"S": "stale"}})
         lock = self.client.get_item(TableName="runs", Key={"run_id": {"S": self.run_id + "#lock"}})
         self.assertEqual(lock["Item"]["lease_owner"]["S"], "successor")
+        self.assertEqual(self.client.scan(TableName="checkpoints")["Count"], 0)
+
+    def test_transient_transaction_conflict_retries_with_live_lease(self):
+        original = self.client.transact_write_items
+        calls = []
+        def transaction(**params):
+            calls.append(params)
+            if len(calls) == 1:
+                raise ClientError({"Error": {"Code": "TransactionCanceledException"},
+                    "CancellationReasons": [{"Code": "TransactionConflict"}, {"Code": "None"}]},
+                    "TransactWriteItems")
+            return original(**params)
+        with self.registry.locked(self.run_id) as lease:
+            with patch.object(self.client, "transact_write_items", side_effect=transaction):
+                lease.fence_saver(self.saver).client.put_item(TableName="checkpoints",
+                    Item={"PK": {"S": "CHECKPOINT_" + self.run_id}, "SK": {"S": "recovered"}})
+            self.assertFalse(lease.lost.is_set())
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(self.client.scan(TableName="checkpoints")["Count"], 1)
+
+    def test_transaction_conflict_retries_are_bounded_and_fail_closed(self):
+        conflict = ClientError({"Error": {"Code": "TransactionCanceledException"},
+            "CancellationReasons": [{"Code": "TransactionConflict"}, {"Code": "None"}]},
+            "TransactWriteItems")
+        with patch.object(self.client, "transact_write_items", side_effect=conflict) as transaction:
+            with self.assertRaises(ServiceError):
+                with self.registry.locked(self.run_id) as lease:
+                    lease.fence_saver(self.saver).client.put_item(TableName="checkpoints",
+                        Item={"PK": {"S": "CHECKPOINT_" + self.run_id}, "SK": {"S": "refused"}})
+        self.assertEqual(transaction.call_count, 5)
+        self.assertTrue(lease.lost.is_set())
         self.assertEqual(self.client.scan(TableName="checkpoints")["Count"], 0)
 
     def test_expired_lease_cannot_be_renewed_or_publish(self):
