@@ -1,16 +1,16 @@
 {
-  "verified_at_utc": "2026-10-05T19:07:39.422634+00:00",
+  "verified_at_utc": "2026-10-05T19:45:09.399305+00:00",
   "region": "eu-west-1",
   "runtime_id": "secloudis_factory_minimum-RPuPF760W2",
-  "runtime_version": "3",
+  "runtime_version": "4",
   "runtime_status": "READY",
   "container_source_revision": "42fc116abbeedc9fa65983b4cfeaba4bd69e7c91",
   "container_tag": "agentcore-42fc116abbee",
   "arm64_manifest_digest": "sha256:256f7c30df34bb18ba5be72f0e53bae2899737500496e29df01134d76287f82d",
   "container_platform": "linux/arm64",
   "container_user": "10001:10001",
-  "infrastructure_revision": "e2e0088d5c4e71b30dc54c7d24a6b2a0dae41b2b",
-  "managed_resource_count": 8,
+  "infrastructure_revision": "78478407ba2b1c1bb00cfb4d7e356724ae763f4d",
+  "managed_resource_count": 9,
   "runtime_idle_timeout_seconds": 60,
   "runtime_max_lifetime_seconds": 900,
   "run_id": "0fcf900126e04e5db7367cdf1c60966e",
@@ -96,7 +96,7 @@
   "input_tokens": 11795,
   "output_tokens": 1078,
   "billed_cost_verified": false,
-  "existing_ecs_portal_routed_to_agentcore": false,
+  "existing_ecs_portal_routed_to_agentcore": true,
   "inbound_mcp_routed_to_agentcore": false,
   "entra_integration_verified": false,
   "direct_jwt_cloud_authorizer_verified": false,
@@ -129,5 +129,74 @@
     "426d81cc-2a15-47f6-9865-5d73af9ddd27"
   ],
   "live_image_digest_matches_record": true,
-  "default_endpoint_live_version": "3"
+  "default_endpoint_live_version": "4",
+  "engineering_password_auth_enabled": false,
+  "live_expired_token_verified": true,
+  "initial_engineering_run_runtime_version": "3",
+  "portal_acceptance": {
+    "run_id": "0ba3a103b6d941aa8ccfaf9a5601a93f",
+    "workflow_status": "release_ready",
+    "portal_source_revision": "78478407ba2b1c1bb00cfb4d7e356724ae763f4d",
+    "portal_image_digest": "sha256:dd92e5ed99239e320899b2db5aa66a04556d04579b959767ceb84fb29a302313",
+    "runtime_version": "4",
+    "backend": "agentcore",
+    "identities": "Two distinct authenticated disposable Cognito users",
+    "approval_method": "Automated browser interactions, not human production review",
+    "gate_decisions": 4,
+    "self_approval_denied_http_status": 403,
+    "model_backed_agents": 5,
+    "reviewer_recommended_approval": false,
+    "production_quality_approval_claimed": false,
+    "input_tokens": 12167,
+    "output_tokens": 1261,
+    "test_users_removed": 2,
+    "expired_token_checks": {
+      "genuine_signed_cognito_token": true,
+      "token_lifetime_seconds": 300,
+      "expired_at_test": true,
+      "portal_http_status": 401,
+      "runtime_http_status": 401,
+      "runtime_request_id": "e09a8d53-7e9f-4d6d-96e5-cc71d356f482",
+      "runtime_caller": "administrative root used only for negative application-token validation; root isolation not claimed",
+      "portal_client_original_validity_restored": true
+    },
+    "browser_responses": [
+      {
+        "request_id": "29436.79",
+        "status": 200,
+        "state": "waiting_approval",
+        "pending_gate": "G1"
+      },
+      {
+        "request_id": "29436.80",
+        "status": 200,
+        "state": "waiting_approval",
+        "pending_gate": "G2"
+      },
+      {
+        "request_id": "29436.81",
+        "status": 200,
+        "state": "waiting_approval",
+        "pending_gate": "G3"
+      },
+      {
+        "request_id": "29436.82",
+        "status": 200,
+        "state": "waiting_approval",
+        "pending_gate": "G4"
+      },
+      {
+        "request_id": "29436.83",
+        "status": 200,
+        "state": "release_ready"
+      }
+    ],
+    "linux_application_tests_passed": 171,
+    "windows_test_limitation": "Native process-restart cleanup encountered a file lock; complete Linux image test run passed.",
+    "perimeter_checks": [
+      "Unapproved IAM user denied despite identity policy permitting this Runtime invocation",
+      "Approved IAM caller reaches handler but missing human token is denied",
+      "Invalid human token denied without running agents"
+    ]
+  }
 }

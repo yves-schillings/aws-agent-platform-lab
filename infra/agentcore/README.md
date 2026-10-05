@@ -3,8 +3,8 @@
 - **Scope**
   - Deploy one ARM64 Factory Runtime with IAM (Identity and Access Management) inbound authentication.
   - Reuse the existing Cognito user pool, Bedrock retrieval and model resources, and DynamoDB tables.
-  - Create a separate Cognito test client for password authentication of synthetic test accounts. The Runtime requires its verified access tokens and `aws.cognito.signin.user.admin` scope.
-  - Retain the current ECS (Elastic Container Service) web deployment. This stack does not redirect its browser or MCP (Model Context Protocol) endpoints.
+  - Keep a separate engineering test client with password authentication disabled by default. The Runtime now requires verified tokens issued by the portal Cognito client with the `openid` scope. Enabling the engineering client alone does not make its different-client tokens valid for this Runtime.
+  - Retain the ECS (Elastic Container Service) web entry point and grant its task role Runtime invocation. The portal deployment selects `FACTORY_BACKEND=agentcore`. MCP (Model Context Protocol) routing remains separate.
 - **Restricted identities**
   - The Runtime execution role permits its image pull, logs, approved model calls, retrieval and shared state operations.
   - A separate engineering caller role can invoke only this Runtime and its DEFAULT endpoint.
@@ -20,7 +20,7 @@
   - Never commit variable values, Terraform state, generated passwords or access tokens.
   - Run `terraform init`, `terraform validate`, then review a saved `terraform plan` before applying that exact plan.
 - **Acceptance and evidence**
-  - Invoke through the restricted engineering role with real synthetic Cognito requester and approver identities.
+  - For the connected portal, obtain real synthetic Cognito tokens through its browser authorization-code/PKCE flow. Engineering-role tests must also use tokens for the configured portal client.
   - Verify arrival at G1 Scope, all four gates, five agent artifacts, durable recovery, cross-company denial, self-approval denial and stale-hash denial.
   - Record Runtime readiness and exact image digest separately from successful authenticated workflow execution.
   - Keep a bounded demonstration online only for its agreed review period. Remove test accounts and destroy this separate stack when it is no longer required; the shared existing platform is outside its destruction scope.

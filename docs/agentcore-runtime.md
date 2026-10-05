@@ -4,7 +4,7 @@
   - Run the existing Python Factory in Amazon Bedrock AgentCore Runtime. Amazon Bedrock still supplies model inference; AgentCore hosts the agent application around those model calls.
   - Preserve the five AI agents (Analyst, Architect, Code Author, Tester and Reviewer), LangGraph orchestration and four human approval gates.
   - Keep the current browser entry point and FastAPI backend. The inbound MCP (Model Context Protocol) server remains separate; its AgentCore routing is not implemented by this change.
-  - A minimum cloud deployment is verified below. Its engineering caller uses a separate Cognito test client; the deployed ECS browser has not been switched to the source connector.
+  - The deployed ECS portal now invokes AgentCore with its own task role and verified portal Cognito access tokens. The separate engineering password-authentication client is disabled.
 
 ## Implemented call path
 
@@ -69,10 +69,10 @@
 ## Verified minimum deployment on 5 October 2026
 
 - **Runtime and source**
-  - Runtime `secloudis_factory_minimum-RPuPF760W2` is READY in `eu-west-1`, with version 3 served by DEFAULT.
+  - Runtime `secloudis_factory_minimum-RPuPF760W2` is READY in `eu-west-1`, with version 4 served by DEFAULT.
   - The exact ARM64 application source is revision `42fc116abbeedc9fa65983b4cfeaba4bd69e7c91`.
   - Its deployed image manifest is `sha256:256f7c30df34bb18ba5be72f0e53bae2899737500496e29df01134d76287f82d`.
-  - The eight-resource Terraform stack reuses the existing Cognito pool, Bedrock inference and retrieval, and DynamoDB state. The container runs as user `10001:10001` with a 60-second idle timeout and 900-second maximum instance lifetime.
+  - The nine-resource Terraform stack reuses the existing Cognito pool, Bedrock inference and retrieval, and DynamoDB state. The container runs as user `10001:10001` with a 60-second idle timeout and 900-second maximum instance lifetime.
   - [Dated machine-readable evidence](agentcore-deployment-evidence.json) records the verified source, image, run, model usage, request identifiers and explicit limits.
 - **Real synthetic workflow**
   - Run `0fcf900126e04e5db7367cdf1c60966e` reached `release_ready` with five model-backed artifacts and four gate decisions.
@@ -93,10 +93,10 @@
   - A failed lease condition or exhausted retry budget still refuses the write. Two additional offline tests cover recovery and bounded failure.
   - The inspected sample of 176 CloudWatch events contained no JWT (JSON Web Token) pattern. That sampled result is not a claim about every possible log configuration.
 - **Remaining integrations**
-  - The existing ECS (Elastic Container Service) browser is not routed to AgentCore. Connecting it requires alignment of its Cognito client and scope, backend invocation permissions, and the `FACTORY_BACKEND=agentcore` deployment setting.
+  - The ECS (Elastic Container Service) portal now uses `FACTORY_BACKEND=agentcore`; its deployed source is `78478407ba2b1c1bb00cfb4d7e356724ae763f4d`. Browser run `0ba3a103b6d941aa8ccfaf9a5601a93f` completed all four gates with distinct Cognito requester and approver identities. Browser interactions were automated protocol checks, not human production review.
   - AgentCore routing for the inbound MCP server remains unimplemented.
   - A direct Cognito JWT cloud authorizer and Microsoft Entra token integration remain unverified. No Microsoft tenant was created.
-  - Expired and wrong-client tokens have offline validation coverage; those two negative cases were not exercised against the live Runtime.
+  - A genuinely signed portal token expired naturally after five minutes and was denied by both portal and Runtime with HTTP 401. The original portal token lifetime was restored. Live wrong-client token validation remains untested.
   - Cross-session shared-state access was verified; forced Runtime restart recovery remains a separate operational test.
 - **Retry limitation**
   - Automatic SDK retries are disabled because a start or decision may succeed before a transport timeout.
@@ -111,3 +111,25 @@
 - [Runtime OAuth authorization](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-oauth.html).
 - [AgentCore IAM actions and resource types](https://docs.aws.amazon.com/service-authorization/latest/reference/list_bedrock-agentcore.html).
 - [AgentCore resource-based policies](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/resource-based-policies.html).
+
+
+## ECS portal connection
+
+- The portal uses `FACTORY_BACKEND=agentcore` and signs calls with its ECS task
+  role. The Runtime independently verifies the original portal Cognito token.
+- Terraform configures the existing portal client ID and `openid` scope instead
+  of the dedicated engineering test client. Cognito remains in place.
+- Both Runtime and DEFAULT endpoint resource policies allow the portal task role
+  as well as the restricted engineering role. The portal task role has a matching
+  identity policy limited to those two resources.
+- The engineering password-authentication test client is disabled by default.
+  Temporary engineering operator creation and cleanup are described in the stack
+  runbook. The portal does not depend on that deleted operator.
+- MCP routing and Microsoft Entra integration remain separate work. The portal
+  connection does not establish either capability.
+- Browser acceptance interactions are automated on synthetic data. A completed
+  gate protocol does not establish production quality of model-generated code.
+
+- **Portal acceptance quality boundary**
+  - The model Reviewer did not recommend approval and reported missing implementation. G3 and G4 were progressed only to verify the synthetic gate protocol, never to approve production code or application deployment.
+  - All 171 tests passed against the Linux container with the pinned test dependency. Native Windows process-restart cleanup encountered a file lock; the Linux restart test passed.
