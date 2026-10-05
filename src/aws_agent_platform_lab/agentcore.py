@@ -50,6 +50,43 @@ Invocation = Annotated[StartInvocation | ReadInvocation | DecideInvocation,
                        Field(discriminator="operation")]
 
 
+class InvocationBodyLimit:
+    """Bound the ASGI request body without using private Starlette attributes."""
+    def __init__(self, app, maximum=65536):
+        self.app, self.maximum = app, maximum
+
+    async def __call__(self, scope, receive, send):
+        if scope['type'] != 'http':
+            return await self.app(scope, receive, send)
+        body = bytearray()
+        while True:
+            message = await receive()
+            if message['type'] == 'http.disconnect':
+                return
+            body.extend(message.get('body', b''))
+            if len(body) > self.maximum:
+                response = JSONResponse({'detail': 'Invocation is too large.'}, status_code=413,
+                                        headers={'Cache-Control': 'no-store'})
+                return await response(scope, receive, send)
+            if not message.get('more_body', False):
+                break
+        delivered = False
+
+        async def replay():
+            nonlocal delivered
+            if not delivered:
+                delivered = True
+                return {'type': 'http.request', 'body': bytes(body), 'more_body': False}
+            return await receive()
+
+        async def safe_send(message):
+            if message['type'] == 'http.response.start':
+                message['headers'] = list(message.get('headers', [])) + [(b'cache-control', b'no-store')]
+            await send(message)
+
+        await self.app(scope, replay, safe_send)
+
+
 def create_runtime_app(*, environ=None, verifier=None, factory_service=None):
     """Create the Runtime service; injected services and test keys stay offline.
 
@@ -92,17 +129,7 @@ def create_runtime_app(*, environ=None, verifier=None, factory_service=None):
     app = FastAPI(title="AgentCore Factory Runtime", docs_url=None, redoc_url=None,
                   openapi_url=None, lifespan=lifespan)
 
-    @app.middleware("http")
-    async def limit_body(request, call_next):
-        body = bytearray()
-        async for chunk in request.stream():
-            body.extend(chunk)
-            if len(body) > 65536:
-                return JSONResponse({"detail": "Invocation is too large."}, status_code=413)
-        request._body = bytes(body)
-        response = await call_next(request)
-        response.headers["Cache-Control"] = "no-store"
-        return response
+    app.add_middleware(InvocationBodyLimit)
 
     @app.exception_handler(RequestValidationError)
     async def invalid_request(request, exc):

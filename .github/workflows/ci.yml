@@ -87,6 +87,11 @@ jobs:
           terraform fmt -check -recursive
           terraform init -backend=false -input=false -lockfile=readonly
           terraform validate -no-color
+      - name: Validate the separate minimum AgentCore stack
+        working-directory: infra/agentcore
+        run: |
+          terraform init -backend=false -input=false -lockfile=readonly
+          terraform validate -no-color
       - name: Build and smoke-test container in local mode
         run: |
           docker build --tag lab-ci .
