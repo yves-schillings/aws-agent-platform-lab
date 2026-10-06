@@ -19,18 +19,18 @@ The delivery sequence is AWS first: deploy and verify this Bedrock implementatio
 - **Browser entry:** The `/factory` page displays the workflow and a **Sign in** button before authentication. Starting or resuming a run requires a verified Cognito identity.
 - **Recorded demonstration:** This screenshot is kept in the repository. The AWS demonstration address is temporary and is not presented as a permanent public service link.
 
-![The deployed Factory homepage with five worker roles and four human gates](docs/images/factory-aws-home.jpg)
+![Factory portal evidence with five AI roles and four human gates](docs/images/multi-agentic-workflow-figure-24.png)
 
 ### From the source code to the browser
 
 - **Page source:** [`factory.html`](src/aws_agent_platform_lab/static/factory.html) defines the page, [`factory.css`](src/aws_agent_platform_lab/static/factory.css) controls its appearance and [`factory.js`](src/aws_agent_platform_lab/static/factory.js) handles browser actions.
 - **Python server:** [`web.py`](src/aws_agent_platform_lab/web.py) serves `/factory` and its static assets through FastAPI.
 - **Container image:** [`Dockerfile`](Dockerfile) packages the Python application, page files and dependencies. Amazon **ECR (Elastic Container Registry)** stores this image.
-- **Task management:** Amazon **ECS (Elastic Container Service)** maintains the application tasks. **AWS Fargate** runs the containers while AWS manages the underlying servers.
+- **Task management:** Amazon **ECS (Elastic Container Service)** maintains the portal tasks. **AWS Fargate** runs the portal containers while AWS manages the underlying servers. The five Python AI agents and LangGraph run separately in **Amazon Bedrock AgentCore Runtime**.
 - **Browser delivery:** The **ALB (Application Load Balancer)** routes an HTTPS (Hypertext Transfer Protocol Secure) request to a healthy task. The Python server returns the page for the browser to display.
 - **Image promotion:** [`scripts/deploy_express.py`](scripts/deploy_express.py) updates the existing service to an exact image digest. See the [verified UI deployment record](docs/factory-ui-deployment.md).
 
-![Factory page source, container image storage, task management and browser delivery](docs/images/factory-page-hosting.png)
+![HTML portal source, ECR image storage, ECS portal tasks and separate AgentCore agent hosting](docs/images/multi-agentic-workflow-figure-15.png)
 
 ### Local Docker checks before AWS deployment
 
@@ -41,7 +41,7 @@ The delivery sequence is AWS first: deploy and verify this Bedrock implementatio
 - **Finding the image:** GitHub stores the Dockerfile, dependencies and [image build workflow](.github/workflows/deploy.yml). The current AWS application image is stored in the private ECR repository `aws-agent-lab`, tagged with source revision `9c253682839f23d641ef701bb4ccc2af8d27a8e3`. It is not published in GitHub Packages. Its deployed digest is recorded in the [deployment verification](docs/factory-ui-deployment.md). The Docker Desktop capture records the earlier local `f777ead` verification image.
 - **Evidence boundary:** Local checks used synthetic data, simulated identities and offline responses. They do not replace the complete live Cognito and Bedrock test with a requester and a distinct approver.
 
-![Docker Desktop showing the local verification container before the AWS image promotion](docs/images/docker-desktop-local-test.png)
+![Docker Desktop evidence for the historical local verification container](docs/images/multi-agentic-workflow-figure-23.png)
 
 ### Cognito sign-in
 
@@ -50,15 +50,15 @@ The delivery sequence is AWS first: deploy and verify this Bedrock implementatio
 - **Evidence boundary:** These screens establish that the entry page and sign-in form are available. They do not establish a completed authenticated model run.
 - **Earlier demonstration:** The root page `/` redirects to the five-role Factory. The original three-role workflow remains explicitly available at `/demo`.
 
-![Amazon Cognito sign-in form before entering an email or password](docs/images/cognito-sign-in.jpg)
+![Amazon Cognito sign-in evidence before entering credentials](docs/images/multi-agentic-workflow-figure-29.png)
 
 - **Requester sign-in recorded:** The following capture shows the authenticated Factory with its synthetic request ready to launch. The account identifier is hidden for publication.
 
-![Authenticated Factory before starting the workflow](docs/images/factory-authenticated-before-start.png)
+![Historical authenticated Factory evidence before starting the workflow](docs/images/multi-agentic-workflow-figure-30.png)
 
-- **First launch stopped before G1:** The source index initially lacked per-document permission metadata. Nine scoped text documents and metadata sidecars were ingested successfully. The unchanged requester filter now returns five permitted passages. The authenticated retry and distinct approver decisions remain to be recorded; the [verification record](docs/factory-ui-deployment.md) describes the correction.
+- **Historical first launch stopped before G1:** The source index initially lacked per-document permission metadata. Nine scoped text documents and metadata sidecars were ingested successfully. The unchanged requester filter then returned five permitted passages. The subsequent authenticated journey is recorded in the [verification record](docs/factory-ui-deployment.md); this screenshot preserves the earlier failure, not the current deployment status.
 
-![First authenticated launch stopped when no permitted reference documents were found](docs/images/factory-reference-error.png)
+![Historical first-launch failure when no permitted reference documents were found](docs/images/multi-agentic-workflow-figure-31.png)
 
 ## Engineering documentation
 
@@ -80,7 +80,12 @@ The repository is public. The AWS deployment status below records only checks co
 
 ## Architecture
 
-The platform accepts a governed application-construction request through an MCP (Model Context Protocol) client or the browser. Python and LangGraph coordinate the five roles, verify the caller’s access, retrieve only permitted source passages, call the selected model and pause at the required human gates.
+The deployed browser portal forwards governed application-construction requests to Amazon Bedrock AgentCore Runtime. Python and LangGraph coordinate the five AI roles, verify the caller's access, retrieve only permitted source passages, call the selected Bedrock model and pause at the required human gates. MCP (Model Context Protocol) currently has a local stdio (standard input/output) harness; remote client integrations remain separate extensions.
+
+- **Diagram source:** These images are native slide exports from the Secloudis PowerPoint master v2.85, also used by the [published article](https://secloudis.com/multi-agentic-workflow-on-aws/). The [export manifest](docs/images/secloudis-slide-exports.json) records the figure, master slide and file checksum.
+- **Runtime implementation:** The [Agent-Core branch](https://github.com/yves-schillings/aws-agent-platform-lab/tree/Agent-Core) contains the AgentCore application and portal connector. Its [dated deployment evidence](https://github.com/yves-schillings/aws-agent-platform-lab/blob/Agent-Core/docs/agentcore-deployment-evidence.json) is separate from the preserved implementation on `main`.
+- **Hosting:** ECS (Elastic Container Service) and Fargate serve the HTML (Hypertext Markup Language) portal. AgentCore Runtime hosts LangGraph and the five Python AI agents. Bedrock supplies remote model inference.
+- **Evidence boundary:** The retained console and browser captures are dated historical evidence. Diagrammed Code Interpreter execution, independent validation and generated-application release are enterprise extensions, not completed deployment claims.
 
 ### Construction Workflow
 
@@ -88,22 +93,22 @@ The platform accepts a governed application-construction request through an MCP 
 - **Reproduce the image:** Run `.venv/Scripts/python.exe scripts/export_factory_graph.py --output artifacts/factory-graph.png`. The [generation script](scripts/export_factory_graph.py) exports both PNG and Mermaid source and refuses to overwrite an existing file.
 - **Read the graph:** G means Gate: G1 Scope, G2 Design, G3 Quality and G4 Release. `continue` follows the next stage; `stop` exits after a failed role or rejected gate. The image describes the compiled workflow structure; it is not an execution trace of a particular run.
 
-![Factory graph generated by LangGraph from its compiled Python definition](docs/images/factory-langgraph-generated.png)
+![Secloudis slide explaining the Factory graph generated by LangGraph and its four human gates](docs/images/multi-agentic-workflow-figure-05.png)
 
-- **Request and access:** Clients submit a construction request through the MCP server or the FastAPI web endpoint.
-- **Python workflow:** LangGraph coordinates the Analyst, Architect, Code Author, Tester and Reviewer functions inside the Factory application.
+- **Request and access:** The deployed HTML portal uses the FastAPI web endpoint. A separate local MCP harness and proposed remote MCP integrations must not be confused with that deployed web route.
+- **Python workflow:** LangGraph coordinates the Analyst, Architect, Code Author, Tester and Reviewer AI functions inside the application container hosted by AgentCore Runtime.
 - **Human gates:** A named approver decides at G1 Scope, G2 Design, G3 Quality and G4 Release. The decision applies to the exact reviewed artifact.
-- **Controlled services:** Retrieval returns only permitted passages. The model receives the permitted context. Candidate validation runs in a separate, restricted boundary.
+- **Controlled services:** Retrieval returns only permitted passages. The model receives permitted context. Code Interpreter candidate execution and independent validation require separate implementation and acceptance evidence.
 
-![System architecture for application construction](docs/images/system-architecture.png)
+![Current system architecture with ECS portal, AgentCore LangGraph application and separately managed Bedrock services](docs/images/multi-agentic-workflow-figure-08.png)
 
 ### Client Access
 
-- **MCP clients:** Codex, Claude Code and Microsoft Copilot Studio call the MCP tools exposed by the Python application.
-- **Web client:** The React portal sends HTTPS (Hypertext Transfer Protocol Secure) requests to the separate FastAPI endpoint.
-- **Shared workflow:** Both routes reach the same access controls, LangGraph workflow, document retrieval and model-call component.
+- **MCP clients:** Codex, Claude Code and Microsoft Copilot Studio are retained client options. Remote MCP authorization and connections need separate implementation and tests; the current MCP harness uses local stdio.
+- **Web client:** The implemented HTML portal sends HTTPS (Hypertext Transfer Protocol Secure) requests to FastAPI on ECS/Fargate. A React portal remains an alternative interface, not the deployed page implementation.
+- **Shared workflow:** The portal invokes the separately hosted AgentCore application. Its trusted Python controls, LangGraph workflow, retrieval and model adapter are independent of the client interface.
 
-![Four interfaces reaching the Python AI workflow](docs/images/four-interfaces.png)
+![Four client options, separate web and MCP interfaces, and AgentCore-hosted Python AI workflow](docs/images/multi-agentic-workflow-figure-17.png)
 The diagrams are licensed under [CC BY 4.0](docs/DIAGRAMS-LICENSE.md), with attribution to Yves Schillings, Secloudis.
 ## MVP status
 

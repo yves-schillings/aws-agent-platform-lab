@@ -1,0 +1,61 @@
+{
+  "master": "Secloudis_Multi_Agentic_Workflow_on_AWS_v2.85.pptx",
+  "date": "2026-10-06",
+  "article": "https://secloudis.com/multi-agentic-workflow-on-aws/",
+  "exports": [
+    {
+      "figure": 5,
+      "slide": 4,
+      "file": "multi-agentic-workflow-figure-05.png",
+      "sha256": "b662ae825fbb8cbf94be80a7143775cd82ceca4e55b3ad4ce5ced75fde4ccba4"
+    },
+    {
+      "figure": 8,
+      "slide": 9,
+      "file": "multi-agentic-workflow-figure-08.png",
+      "sha256": "355ab7e56b78d6d97ab8b5d0c83de5c2498a172917dbb23e06fe8a926350febe"
+    },
+    {
+      "figure": 15,
+      "slide": 28,
+      "file": "multi-agentic-workflow-figure-15.png",
+      "sha256": "29284103eae38ca39f9acd143568aa7dea0f278c5aa0bbfab8cb739b96e4d584"
+    },
+    {
+      "figure": 17,
+      "slide": 14,
+      "file": "multi-agentic-workflow-figure-17.png",
+      "sha256": "0b27225d50ae5b5877f10901126dcaa00791351a47c228b71bee1416c3bc1279"
+    },
+    {
+      "figure": 23,
+      "slide": 21,
+      "file": "multi-agentic-workflow-figure-23.png",
+      "sha256": "bf46a15a57c5a2f3cfb75fc85ef6812e05c3e4ccc77c55bdae8e8c25ec1bdaab"
+    },
+    {
+      "figure": 24,
+      "slide": 22,
+      "file": "multi-agentic-workflow-figure-24.png",
+      "sha256": "bffe33247d8d87fdf3a9d5ea3aa9bb481ef78053f6761cc688da42f40d5096f8"
+    },
+    {
+      "figure": 29,
+      "slide": 27,
+      "file": "multi-agentic-workflow-figure-29.png",
+      "sha256": "286ad34074869622465bd6b94a460e14dd08f5cbef11750271dc426e18277f99"
+    },
+    {
+      "figure": 30,
+      "slide": 30,
+      "file": "multi-agentic-workflow-figure-30.png",
+      "sha256": "d262b1a69bfa82fa88aa6a4ad5853a34621d2a29d0dd1f90c92d09144e64a644"
+    },
+    {
+      "figure": 31,
+      "slide": 31,
+      "file": "multi-agentic-workflow-figure-31.png",
+      "sha256": "b87945ede828a2ac473357b3edeb9b82f788c083f7e94b0d6ce4c3c7da4c3a5b"
+    }
+  ]
+}
