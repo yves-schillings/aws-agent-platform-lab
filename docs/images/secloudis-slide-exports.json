@@ -4,6 +4,18 @@
   "article": "https://secloudis.com/multi-agentic-workflow-on-aws/",
   "exports": [
     {
+      "figure": 1,
+      "slide": 188,
+      "file": "multi-agentic-workflow-figure-01.png",
+      "sha256": "6b7a6cc9c608a3385c6297334b5edd3024168230346ba9af12d747642127751d"
+    },
+    {
+      "figure": 3,
+      "slide": 2,
+      "file": "multi-agentic-workflow-figure-03.png",
+      "sha256": "b6e259c3410b9fef77f9de1137b1b5bb5a6fdf29094e5cda8c39ed3c0549543f"
+    },
+    {
       "figure": 5,
       "slide": 4,
       "file": "multi-agentic-workflow-figure-05.png",
@@ -14,6 +26,12 @@
       "slide": 9,
       "file": "multi-agentic-workflow-figure-08.png",
       "sha256": "355ab7e56b78d6d97ab8b5d0c83de5c2498a172917dbb23e06fe8a926350febe"
+    },
+    {
+      "figure": 10,
+      "slide": 203,
+      "file": "multi-agentic-workflow-figure-10.png",
+      "sha256": "60c71d5b3843ebc52aaa8fabec62608ffe923d766e85d9fdf6d69e34b906be61"
     },
     {
       "figure": 15,
